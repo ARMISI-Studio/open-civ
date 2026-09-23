@@ -367,3 +367,6 @@ End-to-end tests should cover:
 - Mobile viewport navigation.
 
 For this planning change, application code is not implemented. This document updates the project direction from a single client-only prototype to a routed Vue frontend that works with a separate backend API project.
+
+Sina Tarighi 
+Milad Dehghan
