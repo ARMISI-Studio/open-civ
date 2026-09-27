@@ -73,8 +73,8 @@ Let users create and edit a 2D structure that can later be used in questions.
 
 ### 2D editor behaviour
 
-- The editor should keep structure data separate from rendering code.
-- The display model must not be the only source of truth.
+- The structure model (nodes, members, supports, loads) lives as plain typed data in application state; the canvas/SVG only renders that data and must never be the only place it exists.
+- Saving, loading, validation, and edits all operate on the model, never on rendered SVG/canvas elements.
 - Geometry should use consistent units and coordinates.
 - Selection, editing, and deletion must be explicit and reversible where practical.
 - Validation should prevent invalid structures where possible, or clearly show validation errors.
@@ -186,61 +186,6 @@ The answering area may need additional route forms, such as:
 
 The exact public sharing route should be decided with the backend/API contract.
 
-## Frontend architecture
-
-Use the existing Vue 3, TypeScript, and Vite project.
-
-Suggested structure:
-
-```text
-src/
-  App.vue
-  router/
-    index.ts
-  layouts/
-    AppLayout.vue
-  views/
-    StructureEditorView.vue
-    QuestionBuilderView.vue
-    AnswerQuestionsView.vue
-  components/
-    navigation/
-      MainTabs.vue
-    structures/
-      StructureCanvas.vue
-      StructureToolbar.vue
-      StructurePropertiesPanel.vue
-      StructureList.vue
-    questions/
-      QuestionForm.vue
-      QuestionOptionsEditor.vue
-      ShareQuestionPanel.vue
-      QuestionViewer.vue
-      AnswerForm.vue
-  composables/
-    useStructures.ts
-    useQuestionBuilder.ts
-    useAnswerQuestion.ts
-  api/
-    client.ts
-    structures.ts
-    questions.ts
-    answers.ts
-  domain/
-    structures.ts
-    questions.ts
-    answers.ts
-```
-
-Implementation rules:
-
-- Use Vue Router for the three main routes.
-- Keep route views thin and move reusable behaviour into components/composables.
-- Keep API calls behind typed API modules.
-- Keep mock data separate from API modules so it can be removed later.
-- Do not couple canvas/SVG rendering to API response objects directly; map API data into domain models first if needed.
-- Avoid global state unless route-level state sharing becomes necessary.
-
 ## Backend API expectations
 
 The backend is a separate project. The frontend should expect API support for:
@@ -345,28 +290,9 @@ Exit criterion: the frontend works against the backend API in development.
 - Loading, validation, and error states are visible to users.
 - The layout works on desktop and mobile.
 
-## Testing expectations
-
-Unit tests should cover:
-
-- Route definitions and default redirect.
-- Main tab active state.
-- Structure model validation helpers.
-- Structure editor state changes.
-- Question form validation.
-- Share action success and failure states.
-- Answer form validation and submit state.
-
-End-to-end tests should cover:
-
-- Navigating between the three main tabs.
-- Creating or editing a simple structure.
-- Creating a question from a structure.
-- Sharing a question.
-- Opening and answering a shared question.
-- Mobile viewport navigation.
+Architecture, implementation rules, and testing expectations live in [architecture.md](architecture.md).
 
 For this planning change, application code is not implemented. This document updates the project direction from a single client-only prototype to a routed Vue frontend that works with a separate backend API project.
 
-Sina Tarighi 
+Sina Tarighi
 Milad Dehghan
