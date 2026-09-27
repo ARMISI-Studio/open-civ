@@ -24,3 +24,28 @@ Small gaps in [prototype.md](prototype.md), [architecture.md](architecture.md), 
 10. **`UiTextarea` added as an atom.** Question prompts and explanations need multi-line text. It has the same contract as `UiInput`.
 11. **`UiButton` sizes.** `small` reduces padding and font size but keeps the 44px minimum height from ui.md.
 12. **Theme import UI lives in `/ui-preview`.** It accepts theme JSON exported from the playground, keeps the last valid theme when an import is invalid, and saves only the theme preference in `localStorage`. The playground's storage key is reused, so a theme saved in the playground carries over to the app.
+
+## API contract (mocked)
+
+13. **Base URL and error format.** The base URL is `VITE_API_BASE_URL`, defaulting to `/api`. Every non-2xx response has the body `{ "error": { "code", "message", "fields"? } }`. Validation failures return 422 with code `validation_failed` and a message for each field. All endpoints and DTOs are listed in `src/api/types.ts`, which is the one file to update when the backend contract is confirmed.
+14. **No authentication.** Neither spec requires it, so the app has no auth headers, route guards, or user identity.
+15. **Mock persistence.** The MSW mock backend saves its data in `localStorage` (`open-civ-mock-db-v1`) so reloads and share links keep working. It seeds two structures: a simply supported beam and a cantilever. Responses are delayed by 300 ms in the browser so loading states are visible; in unit tests there is no delay.
+16. **Element ids.** Ids inside a structure (`n1`, `m1`, `s1`, `l1`) are created in the frontend, because they only need to be unique within that structure. Structure, question, answer, and share ids always come from the API.
+
+## Structure Editor
+
+17. **Units and coordinates.** Positions are in metres (x to the right, y up) and forces in kN. New and dragged nodes snap to a 0.5 m grid; typed coordinates can be any number.
+18. **Supported elements.** The editor supports nodes (with labels), members (with optional labels), supports (pin, roller, or fixed; at most one per node), and point loads at nodes given as Fx/Fy components. Distributed loads, member properties, and free-floating annotations were left out of the first version.
+19. **Validation rules.** A structure can be saved only if:
+    - it has a name of at most 80 characters;
+    - it has at least one member;
+    - node labels are not blank or repeated, and no two nodes share a position;
+    - every node is connected to a member (checked once any member exists);
+    - no member has zero length or repeats another;
+    - every support and load references an existing node;
+    - every load has a non-zero force.
+    Stability is not checked because there is no solver. Problems are listed under the canvas and shown with red markers on the drawing. Saving is blocked until they are fixed, and the mock API re-checks the same rules.
+20. **Reversible editing.** There is undo and redo (buttons, Ctrl+Z, Ctrl+Shift+Z), and a whole drag or a run of typing counts as one step. Deleting a node also deletes its members, supports, and loads. Deleting a saved structure asks for confirmation. The mock API refuses to delete a structure that a question uses (409).
+21. **Keyboard access.** Every drawing element can be focused and selected with Enter or Space. With the canvas or an element focused, Delete removes the selection, Escape cancels, and the arrow keys move a selected node by 0.5 m. The properties panel can also add a node by coordinates, connect nodes, and add supports and loads, so the editor works without a pointer.
+22. **Mobile.** Below 700px the tool strip wraps above the canvas and the properties panel collapses into a "Properties" disclosure. It opens automatically when you select something.
+23. **`UiStatus` atom added.** Feedback messages show an icon and a hidden text label as well as color, as ui.md requires. Errors use `role="alert"`; other messages use `role="status"`.
