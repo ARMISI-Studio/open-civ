@@ -730,3 +730,18 @@ defineExpose({ svg, SCALE })
   stroke-dasharray: 4 3;
 }
 </style>
+
+<style scoped>
+/* Previews are drawn smaller than the editor; enlarge text so it stays readable. */
+.structure-canvas--readonly .structure-canvas__node-label {
+  font-size: 24px;
+}
+
+.structure-canvas--readonly .structure-canvas__load-label {
+  font-size: 22px;
+}
+
+.structure-canvas--readonly .structure-canvas__member-label {
+  font-size: 20px;
+}
+</style>

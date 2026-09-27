@@ -49,3 +49,12 @@ Small gaps in [prototype.md](prototype.md), [architecture.md](architecture.md), 
 21. **Keyboard access.** Every drawing element can be focused and selected with Enter or Space. With the canvas or an element focused, Delete removes the selection, Escape cancels, and the arrow keys move a selected node by 0.5 m. The properties panel can also add a node by coordinates, connect nodes, and add supports and loads, so the editor works without a pointer.
 22. **Mobile.** Below 700px the tool strip wraps above the canvas and the properties panel collapses into a "Properties" disclosure. It opens automatically when you select something.
 23. **`UiStatus` atom added.** Feedback messages show an icon and a hidden text label as well as color, as ui.md requires. Errors use `role="alert"`; other messages use `role="status"`.
+
+## Question Builder
+
+24. **Multiple choice only, one correct option.** Prototype.md says short answer needs backend validation rules, which are not defined. It appears in the answer-type list as disabled with that reason. Each question has 2–6 options with unique, non-blank text, and exactly one is marked correct. The same rules run in the form and in the mock API.
+25. **A structure is required.** Every question uses one structure, either a saved one or one drawn in the builder. Prototype.md's `structureId?` stays optional in the API types.
+26. **New structure in the builder.** The full structure editor is embedded in the form. On save, the structure is created (or updated) through the structures API first, then the question is saved with its id. The structure then appears in the Structure Editor like any other.
+27. **Save before sharing.** Sharing is disabled until the question is saved, and again while it has unsaved changes, so the link always points to what the author sees. The link, share code, and URL come from the API. Asking to share an already shared question returns the same link. The mock builds links as `<origin>/questions/answer/<shareId>` from an 8-character code.
+28. **Validation timing.** Question and structure errors appear after the first save attempt, next to each field and in a count by the save button. Server field errors (422) are mapped onto the same fields.
+29. **The builder is not a saved route.** After saving, the builder stays on `/questions/create`, and reloading starts a new question. The saved question, structure, and share link still exist through the API. Prototype.md lists no requirement to reopen questions for editing, and there is no question list endpoint.

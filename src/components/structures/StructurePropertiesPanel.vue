@@ -276,7 +276,13 @@ const supportOptions = SUPPORT_TYPES.map((t) => ({ ...t }))
       <p class="structure-properties__hint">
         Select an element on the drawing to edit it, or add a node by coordinates.
       </p>
-      <form class="structure-properties__add-node" @submit.prevent="addNodeFromForm">
+      <!-- Not a <form>: the workspace can sit inside the question form, and forms can't nest. -->
+      <div
+        class="structure-properties__add-node"
+        role="group"
+        aria-label="Add a node by coordinates"
+        @keydown.enter.prevent="addNodeFromForm"
+      >
         <div class="structure-properties__pair">
           <UiField v-slot="{ id }" :label="`New node x (${UNITS.length})`">
             <UiInput :id="id" v-model="newX" type="number" step="0.5" inputmode="decimal" />
@@ -286,11 +292,11 @@ const supportOptions = SUPPORT_TYPES.map((t) => ({ ...t }))
           </UiField>
         </div>
         <p v-if="newNodeError" class="structure-properties__error">{{ newNodeError }}</p>
-        <UiButton type="submit" :disabled="!!newNodeError">
+        <UiButton :disabled="!!newNodeError" @click="addNodeFromForm">
           <template #icon>⊙</template>
           Add node
         </UiButton>
-      </form>
+      </div>
       <dl class="structure-properties__facts">
         <div>
           <dt>Nodes</dt>

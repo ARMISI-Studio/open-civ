@@ -1,8 +1,16 @@
 import { delay, http, HttpResponse, type RequestHandler } from 'msw'
 import { API_BASE_URL, type ApiErrorBody } from '@/api/client'
-import type { StructureDto, StructureInputDto, StructureSummaryDto } from '@/api/types'
+import type {
+  QuestionDto,
+  QuestionInputDto,
+  QuestionShareDto,
+  StructureDto,
+  StructureInputDto,
+  StructureSummaryDto,
+} from '@/api/types'
 import { validateStructure } from '@/domain/structures'
-import { getDb, newId, now, persist } from './db'
+import { newOptionDraft, validateQuestion } from '@/domain/questions'
+import { type MockDb, getDb, newId, newShareId, now, persist } from './db'
 
 const api = (path: string) => `${API_BASE_URL}${path}`
 
@@ -108,4 +116,139 @@ const structureHandlers: RequestHandler[] = [
   }),
 ]
 
-export const handlers: RequestHandler[] = [...structureHandlers]
+// --- Questions and sharing -------------------------------------------------------------------
+
+type StoredQuestion = MockDb['questions'][number]
+
+/** Public link for a share id. The route is decided here, on the "server". */
+function shareUrl(request: Request, shareId: string) {
+  return `${new URL(request.url).origin}/questions/answer/${shareId}`
+}
+
+function toQuestionDto(question: StoredQuestion, request: Request): QuestionDto {
+  const share = getDb().shares.find((s) => s.questionId === question.id)
+  return {
+    ...question,
+    share: share
+      ? {
+          shareId: share.shareId,
+          url: shareUrl(request, share.shareId),
+          createdAt: share.createdAt,
+        }
+      : undefined,
+  }
+}
+
+function validateQuestionInput(body: QuestionInputDto) {
+  if (!body || typeof body.title !== 'string' || typeof body.prompt !== 'string') {
+    return errorResponse(400, 'bad_request', 'The question data is malformed.')
+  }
+  const options = (body.options ?? []).map((o) => ({ ...newOptionDraft(o.text, o.correct) }))
+  const errors = validateQuestion({
+    title: body.title,
+    prompt: body.prompt,
+    structureId: body.structureId ?? null,
+    answerType: body.answerType,
+    options,
+    explanation: body.explanation ?? '',
+  })
+  const fields: Record<string, string> = {}
+  for (const key of ['title', 'prompt', 'answerType', 'options', 'explanation'] as const) {
+    if (errors[key]) fields[key] = errors[key]!
+  }
+  if (errors.structure) fields.structureId = errors.structure
+  if (Object.keys(errors.optionText).length) fields.options ??= 'Every option needs unique text.'
+  if (body.structureId && !getDb().structures.some((s) => s.id === body.structureId)) {
+    fields.structureId = 'The chosen structure no longer exists.'
+  }
+  return Object.keys(fields).length
+    ? errorResponse(422, 'validation_failed', 'The question has problems.', fields)
+    : null
+}
+
+function storedOptions(body: QuestionInputDto, previous: StoredQuestion['options'] = []) {
+  const known = new Set(previous.map((o) => o.id))
+  return (body.options ?? []).map((o) => ({
+    id: o.id && known.has(o.id) ? o.id : newId('opt'),
+    text: o.text,
+    correct: o.correct,
+  }))
+}
+
+const questionHandlers: RequestHandler[] = [
+  http.post<never, QuestionInputDto>(api('/questions'), async ({ request }) => {
+    await delay(LATENCY_MS)
+    const body = await request.json()
+    const invalid = validateQuestionInput(body)
+    if (invalid) return invalid
+    const timestamp = now()
+    const question: StoredQuestion = {
+      id: newId('q'),
+      title: body.title,
+      prompt: body.prompt,
+      structureId: body.structureId,
+      answerType: body.answerType,
+      options: storedOptions(body),
+      explanation: body.explanation,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    getDb().questions.push(question)
+    persist()
+    return HttpResponse.json(toQuestionDto(question, request), { status: 201 })
+  }),
+
+  http.get<{ id: string }>(api('/questions/:id'), async ({ params, request }) => {
+    await delay(LATENCY_MS)
+    const question = getDb().questions.find((q) => q.id === params.id)
+    return question ? HttpResponse.json(toQuestionDto(question, request)) : notFound('Question')
+  }),
+
+  http.put<{ id: string }, QuestionInputDto>(api('/questions/:id'), async ({ params, request }) => {
+    await delay(LATENCY_MS)
+    const db = getDb()
+    const index = db.questions.findIndex((q) => q.id === params.id)
+    if (index === -1) return notFound('Question')
+    const body = await request.json()
+    const invalid = validateQuestionInput(body)
+    if (invalid) return invalid
+    const previous = db.questions[index]!
+    const question: StoredQuestion = {
+      ...previous,
+      title: body.title,
+      prompt: body.prompt,
+      structureId: body.structureId,
+      answerType: body.answerType,
+      options: storedOptions(body, previous.options),
+      explanation: body.explanation,
+      updatedAt: now(),
+    }
+    db.questions[index] = question
+    persist()
+    return HttpResponse.json(toQuestionDto(question, request))
+  }),
+
+  http.post<{ id: string }>(api('/questions/:id/share'), async ({ params, request }) => {
+    await delay(LATENCY_MS)
+    const db = getDb()
+    const question = db.questions.find((q) => q.id === params.id)
+    if (!question) return notFound('Question')
+    if (question.structureId && !db.structures.some((s) => s.id === question.structureId)) {
+      return errorResponse(409, 'conflict', 'The structure for this question no longer exists.')
+    }
+    let share = db.shares.find((s) => s.questionId === question.id)
+    if (!share) {
+      share = { shareId: newShareId(), questionId: question.id, createdAt: now() }
+      db.shares.push(share)
+      persist()
+    }
+    const dto: QuestionShareDto = {
+      shareId: share.shareId,
+      url: shareUrl(request, share.shareId),
+      createdAt: share.createdAt,
+    }
+    return HttpResponse.json(dto, { status: 201 })
+  }),
+]
+
+export const handlers: RequestHandler[] = [...structureHandlers, ...questionHandlers]
