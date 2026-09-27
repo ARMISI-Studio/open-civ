@@ -1,0 +1,32 @@
+/*
+ * Derived component tokens. Base tokens (--colors-*, --spacing-*, --fonts-*, --shape-*)
+ * are applied at runtime from src/theme/default.json by applyTheme().
+ */
+:root {
+  --layer-header: 10;
+  --layer-dropdown: 50;
+
+  --border-width: 1px;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+  --focus-ring: var(--focus-ring-width) solid var(--colors-primary);
+
+  --shadow-floating: 0 8px 24px rgb(15 23 42 / 0.12), 0 2px 6px rgb(15 23 42 / 0.08);
+  --transition-fast: 150ms ease;
+
+  --control-padding-inline: var(--spacing-medium);
+  --control-disabled-opacity: 0.5;
+
+  --panel-properties-width: 280px;
+  --page-max-width: 1280px;
+  --answer-max-width: 960px;
+
+  --canvas-member-width: 3px;
+  --canvas-node-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms linear;
+  }
+}
