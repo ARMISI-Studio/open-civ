@@ -47,7 +47,5 @@ export default defineConfig({
     command: process.env.CI ? 'pnpm preview' : 'pnpm dev',
     port: process.env.CI ? 4173 : 5173,
     reuseExistingServer: !process.env.CI,
-    // E2E expectations assume the default mock network, whatever src/mocks/simulation.ts is set to.
-    env: { VITE_MOCK_PROFILE: 'normal' },
   },
 })

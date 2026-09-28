@@ -26,16 +26,6 @@ The app only calls the backend through the typed modules in `src/api/`. Request 
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | `/api` | Base URL of the backend API |
 | `VITE_API_MOCKS` | on | Set to `off` to disable the mock backend and call the real API |
-| `VITE_MOCK_PROFILE` | `normal` | Mock network profile: `instant`, `normal`, `slow`, `flaky` or `down` |
-
-### Simulating a slow or unreliable backend
-
-[src/mocks/simulation.ts](src/mocks/simulation.ts) sets how slow and how unreliable the mock API is:
-
-- **Profiles** set a base latency, random jitter, and failure rate for every request. Change `ACTIVE_PROFILE`, or pick one for a single run with `VITE_MOCK_PROFILE=slow pnpm dev`.
-- **`ROUTE_RULES`** override one endpoint, for example to make only sharing fail: `{ method: 'POST', path: '/questions/:id/share', failureRate: 1 }`.
-
-Simulated failures return a 503 with the usual error body, so the app shows its normal error and retry states. Unit tests always use the `instant` profile, and the e2e tests always use `normal`.
 
 ## Recommended IDE Setup
 
