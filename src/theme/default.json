@@ -1,0 +1,27 @@
+{
+  "colors": {
+    "background": "#f8fafc",
+    "surface": "#ffffff",
+    "border": "#e2e8f0",
+    "inputBorder": "#64748b",
+    "text": "#0f172a",
+    "muted": "#475569",
+    "primary": "#2563eb",
+    "primaryHover": "#1d4ed8",
+    "onPrimary": "#ffffff",
+    "selection": "#eff6ff",
+    "success": "#15803d",
+    "warning": "#b45309",
+    "error": "#b91c1c"
+  },
+  "spacing": { "small": 8, "medium": 16, "large": 24, "section": 32 },
+  "fonts": {
+    "family": "system-ui, sans-serif",
+    "body": 16,
+    "label": 14,
+    "heading": 24,
+    "section": 18,
+    "lineHeight": 1.5
+  },
+  "shape": { "controlRadius": 8, "panelRadius": 12, "controlHeight": 44 }
+}

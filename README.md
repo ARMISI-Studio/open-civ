@@ -1,6 +1,35 @@
 # open-civ
 
-This template should help get you started developing with Vue 3 in Vite.
+Frontend for a structural-learning app: draw 2D structures, turn them into questions, share them, and answer shared questions. Vue 3, TypeScript, and Vite.
+
+The product spec lives in [specs/prototype/](specs/prototype/): [prototype.md](specs/prototype/prototype.md) (requirements), [architecture.md](specs/prototype/architecture.md), [ui.md](specs/prototype/ui.md), and [decisions.md](specs/prototype/decisions.md) (gaps resolved during the build).
+
+## Routes
+
+| Route | Screen |
+| --- | --- |
+| `/structures` | Structures list |
+| `/structures/new`, `/structures/:structureId` | Structure Editor |
+| `/questions` | Questions list, with share status |
+| `/questions/new`, `/questions/:questionId` | Question Builder |
+| `/answers` | Shared questions to answer, and the share-code form |
+| `/answers/:shareId` | Answer a shared question |
+| `/ui-preview` | Shared UI components and theme import (not in the main tabs) |
+
+## Load analysis
+
+The structure workspace has a **Show results** toggle. It shows support reactions, member end forces, and the deflected shape. All of the structural calculations are in [src/domain/analysis/frame2d.ts](src/domain/analysis/frame2d.ts), written to be reviewed by a structural engineer. The file header states the method, assumptions, units, and sign conventions. [The tests beside it](src/domain/analysis/__tests__/frame2d.spec.ts) check textbook cases that can be worked by hand.
+
+## Mock backend
+
+There is no backend yet. [MSW](https://mswjs.io) answers every API request in the browser from `src/mocks/`, and stores its data in `localStorage`. To reset the data, clear the site's storage.
+
+The app only calls the backend through the typed modules in `src/api/`. Request and response types and the endpoint list are in `src/api/types.ts`.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | `/api` | Base URL of the backend API |
+| `VITE_API_MOCKS` | on | Set to `off` to disable the mock backend and call the real API |
 
 ## Recommended IDE Setup
 
@@ -8,68 +37,51 @@ This template should help get you started developing with Vue 3 in Vite.
 
 This project replaces its workspace TypeScript package with [typescript-native-bridge](https://github.com/johnsoncodehk/typescript-native-bridge). Command-line tools use the bridge automatically. To use it in VS Code after installing dependencies, accept the prompt to use the workspace TypeScript version. If the prompt does not appear, run **TypeScript: Select TypeScript Version** and choose **Use Workspace Version**.
 
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
 ## Project Setup
 
 ```sh
 pnpm install
 ```
 
-### Compile and Hot-Reload for Development
+### Develop
 
 ```sh
 pnpm dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### Type-check, compile, and minify for production
 
 ```sh
 pnpm build
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+### Unit tests ([Vitest](https://vitest.dev/))
 
 ```sh
-pnpm test:unit
+pnpm test:unit --run
 ```
 
-### Run End-to-End Tests with [Playwright](https://playwright.dev)
+Unit tests run against the same MSW handlers as the app. The server is set up in `src/__tests__/setup.ts`.
+
+### End-to-end tests ([Playwright](https://playwright.dev))
 
 ```sh
-# Install browsers for the first run
-npx playwright install
+# Install the browser for the first run
+pnpm exec playwright install chromium
 
-# When testing on CI, must build the project first
-pnpm build
-
-# Runs the end-to-end tests
+# Runs against the dev server (started automatically)
 pnpm test:e2e
-# Runs the tests only on Chromium
-pnpm test:e2e --project=chromium
-# Runs the tests of a specific file
-pnpm test:e2e tests/example.spec.ts
-# Runs the tests in debug mode
-pnpm test:e2e --debug
+
+# Runs against the production build, as on CI
+pnpm build && CI=1 pnpm test:e2e
+
+# Watch the browser
+PW_HEADED=1 pnpm test:e2e
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+### Lint and format
 
 ```sh
 pnpm lint
+pnpm format
 ```

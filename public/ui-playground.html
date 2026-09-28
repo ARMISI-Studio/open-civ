@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Civ · Visual playground</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf0f4;color:#172033;font:14px/1.5 system-ui,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:default;opacity:.5}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2563eb;outline-offset:3px}h1,h2,h3,p{margin:0}button,input,select,textarea{min-width:0}.shell{display:grid;grid-template-columns:320px minmax(0,1fr);min-height:100vh}.settings{background:#fff;border-right:1px solid #d5dbe4;padding:24px;height:100vh;overflow:auto;position:sticky;top:0}.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:700;color:#64748b}.settings h1{font-size:22px;margin:6px 0}.intro{color:#64748b;margin-bottom:24px}.settings details{border-top:1px solid #e2e8f0;padding:16px 0}.settings summary{font-weight:650;cursor:pointer;margin-bottom:12px}.setting{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0}.setting span{font-size:12px}.setting input[type=color]{width:44px;height:30px;border:1px solid #d5dbe4;border-radius:5px;padding:2px;background:white}.setting input[type=number]{width:76px}.settings input[type=number],.settings input[type=text],.settings select{padding:6px;border:1px solid #aab4c2;border-radius:5px}.setting select{max-width:150px}.settings textarea{width:100%;height:260px;resize:vertical;font:12px/1.5 monospace;border:1px solid #aab4c2;border-radius:6px;padding:10px;tab-size:2}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.settings button,.viewport button{border:1px solid #aab4c2;background:#fff;color:#172033;border-radius:6px;padding:8px 12px}.settings .strong{background:#172033;color:white;border-color:#172033}.notice{font-size:12px;margin-top:12px;color:#475569;min-height:36px}.notice.error{color:#b91c1c}.stage{padding:24px;min-width:0}.stagebar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}.stagebar h2{font-size:16px}.viewport{display:flex;gap:6px}.viewport button[aria-pressed=true]{background:#172033;color:white}.frame{margin:auto;width:100%;transition:max-width .15s}.frame.mobile{max-width:390px}.frame iframe{display:block;width:100%;height:1100px;border:1px solid #d5dbe4;border-radius:12px;background:white}.hint{color:#64748b;font-size:12px;margin-top:12px} @media(max-width:850px){.shell{grid-template-columns:1fr}.settings{position:static;height:auto;border-right:0}.stage{padding:12px}.stagebar{flex-wrap:wrap}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="settings" aria-label="Theme editor">
+<div class="eyebrow">Open Civ / design tools</div><h1>Make it feel right.</h1>
+<p class="intro">Tune the theme. See every change live. Export the JSON when you’re happy.</p>
+<div id="controls"></div>
+<details><summary>Theme JSON</summary><p class="hint">Edit the complete theme, then apply. Values are pixels unless noted.</p><textarea id="json" aria-label="Theme JSON" spellcheck="false"></textarea><div class="actions"><button id="apply">Apply JSON</button><button id="import">Import JSON</button></div></details>
+<div class="actions"><button class="strong" id="export">Export JSON</button><button id="reset">Reset defaults</button></div>
+<input id="file" type="file" accept=".json,application/json" hidden>
+<p class="notice" id="status" role="status" aria-live="polite">Changes are saved in this browser automatically.</p>
+</aside>
+<main class="stage"><div class="stagebar"><div><div class="eyebrow">Interactive style study</div><h2>Your prototype, your palette.</h2></div><div class="viewport" aria-label="Preview width"><button id="desktop" aria-pressed="true">Desktop</button><button id="mobile" aria-pressed="false">Mobile</button></div></div><div class="frame" id="frame"><iframe id="preview" title="Prototype visual preview"></iframe></div><p class="hint">Sample screens and interactions for visual review. Theme settings are the only data saved.</p></main>
+</div>
+<script id="default-theme" type="application/json">
+{
+  "colors": {
+    "background": "#f8fafc", "surface": "#ffffff", "border": "#e2e8f0",
+    "inputBorder": "#64748b", "text": "#0f172a", "muted": "#475569",
+    "primary": "#2563eb", "primaryHover": "#1d4ed8", "onPrimary": "#ffffff",
+    "selection": "#eff6ff", "success": "#15803d", "warning": "#b45309", "error": "#b91c1c"
+  },
+  "spacing": { "small": 8, "medium": 16, "large": 24, "section": 32 },
+  "fonts": { "family": "system-ui, sans-serif", "body": 16, "label": 14, "heading": 24, "section": 18, "lineHeight": 1.5 },
+  "shape": { "controlRadius": 8, "panelRadius": 12, "controlHeight": 44 }
+}
+</script>
+<template id="preview-template">
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+*{box-sizing:border-box}body{margin:0;background:var(--colors-background);color:var(--colors-text);font:var(--fonts-body)/var(--fonts-lineHeight) var(--fonts-family)}h1,h2,h3,p{margin:0}h1{font-size:var(--fonts-heading);font-weight:650}h2,h3{font-size:var(--fonts-section);font-weight:650}button,input,select{font:inherit;color:inherit}button{cursor:pointer}button,input,select{min-height:var(--shape-controlHeight);border:1px solid var(--colors-inputBorder);border-radius:var(--shape-controlRadius);padding:var(--spacing-small) var(--spacing-medium);background:var(--colors-surface);max-width:100%}button:hover{background:var(--colors-selection)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--colors-primary);outline-offset:3px}button:disabled{opacity:.45;cursor:default}.primary{background:var(--colors-primary);color:var(--colors-onPrimary);border-color:var(--colors-primary)}.primary:hover{background:var(--colors-primaryHover)}.danger{color:var(--colors-error)}.muted,small{color:var(--colors-muted)}small,label,.badge{font-size:var(--fonts-label)}header{background:var(--colors-surface);padding:var(--spacing-medium) var(--spacing-large);border-bottom:1px solid var(--colors-border)}.brand{display:flex;gap:var(--spacing-small);align-items:center;font-weight:750;margin-bottom:var(--spacing-medium)}.logo{display:grid;place-items:center;background:var(--colors-primary);color:var(--colors-onPrimary);border-radius:var(--shape-controlRadius);width:34px;height:34px}nav{display:flex;gap:var(--spacing-small);flex-wrap:wrap}nav button{border:0;border-radius:0;border-bottom:3px solid transparent;font-size:var(--fonts-label);padding-inline:var(--spacing-small)}nav button[aria-selected=true]{border-bottom-color:var(--colors-primary);color:var(--colors-primary);font-weight:650}.page{padding:var(--spacing-large)}.titlebar{display:flex;justify-content:space-between;align-items:center;gap:var(--spacing-medium);margin-bottom:var(--spacing-large);flex-wrap:wrap}.row{display:flex;align-items:center;gap:var(--spacing-small);flex-wrap:wrap}.badge{color:var(--colors-success)}.panel{background:var(--colors-surface);border:1px solid var(--colors-border);border-radius:var(--shape-panelRadius);overflow:hidden}.editor{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:var(--spacing-medium)}.tools{display:flex;gap:var(--spacing-small);flex-wrap:wrap;padding:var(--spacing-medium);border-bottom:1px solid var(--colors-border)}.tools button{font-size:var(--fonts-label);padding:var(--spacing-small)}.selected{background:var(--colors-selection);border-color:var(--colors-primary);color:var(--colors-primary)}.drawing{background-image:radial-gradient(var(--colors-border) 1px,transparent 1px);background-size:20px 20px;padding:var(--spacing-medium)}svg{display:block;width:100%;height:auto;min-height:230px;color:var(--colors-text)}svg text{fill:var(--colors-muted);font:14px var(--fonts-family)}.member{stroke:var(--colors-text);stroke-width:3}.support{stroke:var(--colors-muted);fill:none;stroke-width:2}.node{fill:var(--colors-surface);stroke:var(--colors-text);stroke-width:2}.load{stroke:var(--colors-warning);stroke-width:3;fill:var(--colors-warning)}.chosen{stroke:var(--colors-primary)}.canvas-footer{padding:var(--spacing-medium);border-top:1px solid var(--colors-border);display:flex;justify-content:space-between;font-size:var(--fonts-label);color:var(--colors-muted)}.properties{padding:var(--spacing-medium)}.stack{display:grid;align-content:start;gap:var(--spacing-medium)}.field{display:grid;gap:var(--spacing-small)}input,select{width:100%}.section{margin-top:var(--spacing-section)}.samples{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-medium);margin-top:var(--spacing-medium)}.sample{padding:var(--spacing-large)}.alert{border-left:3px solid currentColor;padding:var(--spacing-small) var(--spacing-medium);font-size:var(--fonts-label)}.success{color:var(--colors-success)}.warning{color:var(--colors-warning)}.error{color:var(--colors-error)}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-large)}.option{display:flex;gap:var(--spacing-small);align-items:center;border:1px solid var(--colors-inputBorder);padding:var(--spacing-medium);border-radius:var(--shape-controlRadius);cursor:pointer}.option:has(input:checked){border-color:var(--colors-primary);background:var(--colors-selection)}.option input{width:18px;min-height:18px;accent-color:var(--colors-primary)}[hidden]{display:none!important}@media(max-width:700px){.editor,.samples,.formgrid{grid-template-columns:1fr}.page{padding:var(--spacing-medium)}nav button{flex:1;padding-inline:0}.titlebar{align-items:flex-start}header{padding:var(--spacing-medium)}}
+</style></head><body>
+<header><div class="brand"><span class="logo">△</span> Open Civ <small class="muted">/ structural learning</small></div><nav aria-label="Prototype screens" role="tablist"><button role="tab" aria-selected="true" data-screen="editor">Structure Editor</button><button role="tab" aria-selected="false" data-screen="builder">Question Builder</button><button role="tab" aria-selected="false" data-screen="answer">Answer Questions</button></nav></header>
+<main class="page">
+<section id="editor" class="screen"><div class="titlebar"><div><small class="muted">YOUR WORKSPACE</small><h1>A simple supported beam</h1><p class="muted">Build a structure. Explore how it works.</p></div><div class="row"><span class="badge">✓ Saved example</span><button class="primary" data-demo="Structure saved (demo).">Save structure</button></div></div><div class="editor"><div class="panel"><div class="tools" aria-label="Drawing tools"><button class="selected" aria-pressed="true">↖ Select</button><button aria-pressed="false">⊙ Node</button><button aria-pressed="false">╱ Member</button><button aria-pressed="false">△ Support</button><button aria-pressed="false">↓ Load</button></div><div class="drawing" id="diagram"><svg viewBox="0 0 560 320" role="img" aria-label="Six meter supported beam with a downward ten kilonewton load at its center"><defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="load"/></marker></defs><line class="load" x1="280" y1="65" x2="280" y2="154" marker-end="url(#arrow)"/><text x="299" y="91">10 kN</text><line class="member chosen" x1="80" y1="174" x2="480" y2="174"/><path class="support" d="M80 182 L63 210 H97 Z M58 218 H102 M480 182 L463 210 H497 Z M458 228 H502"/><circle class="support" cx="471" cy="218" r="4"/><circle class="support" cx="489" cy="218" r="4"/><circle class="node chosen" cx="80" cy="174" r="6"/><circle class="node" cx="480" cy="174" r="6"/><text x="72" y="151">A</text><text x="474" y="151">B</text><path class="support" d="M80 252 V272 M80 262 H480 M480 252 V272"/><text x="266" y="287">6 m</text></svg></div><div class="canvas-footer"><span id="tool-hint">Select an element to inspect it</span><span>Units: m, kN</span></div></div><aside class="panel properties stack"><div><small class="muted">SELECTED MEMBER</small><h2>Beam AB</h2></div><label class="field">Label<input value="Beam AB"></label><label class="field">Length (m)<input type="number" value="6" min="1"></label><label class="field">Material<select><option>Steel</option><option>Timber</option><option>Concrete</option></select></label><button class="danger" data-demo="Delete action preview — sample beam kept for comparison.">Delete member</button></aside></div></section>
+<section id="builder" class="screen" hidden><div class="titlebar"><div><small class="muted">QUESTION BUILDER</small><h1>Turn a structure into a question.</h1></div><button class="primary" data-demo="Question saved (demo). No public link is created.">Save question</button></div><div class="formgrid"><div class="panel sample stack"><label class="field">Question title<input value="Find the support reaction"></label><label class="field">Prompt<input value="What is the vertical reaction at support A?"></label><label class="field">Answer type<select><option>Multiple choice</option></select></label><label class="field">Correct answer<input value="5 kN upward"></label><small>Attach a structure, write the prompt, then share.</small></div><div class="panel sample"><h2>Structure preview</h2><div class="diagram-copy"></div><span class="badge">✓ Beam AB attached</span></div></div></section>
+<section id="answer" class="screen" hidden><div class="titlebar"><div><small class="muted">STATICS / PRACTICE 01</small><h1>Find the support reaction.</h1><p class="muted">What is the vertical reaction at support A?</p></div></div><div class="formgrid"><div class="panel drawing diagram-copy"></div><div class="panel sample stack"><h2>Your answer</h2><label class="option"><input type="radio" name="answer" value="0">0 kN</label><label class="option"><input type="radio" name="answer" value="5">5 kN upward</label><label class="option"><input type="radio" name="answer" value="10">10 kN upward</label><button class="primary" id="submit-answer" disabled>Submit answer</button><p id="answer-feedback" role="status"></p></div></div></section>
+<section class="section"><h2>The little details</h2><p class="muted">Compare controls and feedback in one place.</p><div class="samples"><div class="panel sample stack"><h3>Actions & inputs</h3><div class="row"><button class="primary" data-demo="Primary action preview.">Primary action</button><button data-demo="Secondary action preview.">Secondary</button><button disabled>Disabled</button></div><label class="field">Structure name<input placeholder="e.g. Roof truss"></label><small>Use a name you’ll recognize later.</small></div><div class="panel sample stack"><h3>Feedback</h3><p class="alert success">✓ Your structure has been saved.</p><p class="alert warning">△ Check the support conditions.</p><p class="alert error">! Enter a load greater than zero.</p></div></div></section><p id="demo-status" class="section muted" role="status">Preview mode · sample content</p>
+</main></body></html>
+</template>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const defaults = JSON.parse($('default-theme').textContent);
+const storageKey = 'open-civ-visual-theme-v1';
+const families = ['system-ui, sans-serif','Arial, sans-serif','Georgia, serif','Verdana, sans-serif','ui-monospace, monospace'];
+const bounds = {spacing:[0,64],body:[12,24],label:[12,20],heading:[18,40],section:[14,32],lineHeight:[1.2,2],controlRadius:[0,24],panelRadius:[0,32],controlHeight:[44,64]};
+let theme = structuredClone(defaults);
+let previewReady = false;
+function message(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
+function validate(value){
+ if(!value || typeof value!=='object' || Array.isArray(value)) throw Error('Theme must be a JSON object.');
+ if(Object.keys(value).length!==Object.keys(defaults).length) throw Error('Use exactly the groups shown in the default theme.');
+ for(const [group,fields] of Object.entries(defaults)){
+  if(!value[group] || typeof value[group]!=='object' || Object.keys(value[group]).length!==Object.keys(fields).length) throw Error('Missing or unexpected fields in '+group+'.');
+  for(const key of Object.keys(fields)){
+   const v=value[group][key];
+   if(group==='colors'){if(typeof v!=='string'||!/^#[0-9a-f]{6}$/i.test(v)) throw Error(group+'.'+key+' must be a six-digit hex color.');}
+   else if(key==='family'){if(!families.includes(v)) throw Error('Choose a supported font stack: '+families.join(' / '));}
+   else{const [min,max]=bounds[group==='spacing'?'spacing':key];if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max) throw Error(group+'.'+key+' must be between '+min+' and '+max+'.');}
+  }
+ }
+ return structuredClone(value);
+}
+try{const saved=localStorage.getItem(storageKey);if(saved)theme=validate(JSON.parse(saved));}catch{message('Saved settings could not be loaded. Using defaults.',true)}
+const label = key => key.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase());
+function renderControls(){
+ $('controls').replaceChildren();
+ for(const [group,fields] of Object.entries(theme)){
+  const detail=document.createElement('details');detail.open=group==='colors';
+  const summary=document.createElement('summary');summary.textContent=label(group)+(group==='spacing'?' · px':'');detail.append(summary);
+  for(const [key,value] of Object.entries(fields)){
+   const wrapper=document.createElement('label');wrapper.className='setting';const name=document.createElement('span');name.textContent=label(key);wrapper.append(name);
+   const input=document.createElement(key==='family'?'select':'input');input.dataset.group=group;input.dataset.key=key;
+   if(key==='family'){for(const font of families){const option=document.createElement('option');option.value=font;option.textContent=font.split(',')[0];input.append(option)}}
+   else if(group==='colors')input.type='color';
+   else{input.type='number';const [min,max]=bounds[group==='spacing'?'spacing':key];input.min=min;input.max=max;input.step=key==='lineHeight'?'.1':'1'}
+   input.value=value;input.addEventListener('input',()=>{
+    if(!input.checkValidity()||input.value==='')return;
+    const next=structuredClone(theme);next[group][key]=group==='colors'||key==='family'?input.value:Number(input.value);
+    try{theme=validate(next);sync()}catch(e){message(e.message,true)}
+   });wrapper.append(input);detail.append(wrapper);
+  }$('controls').append(detail);
+ }
+}
+function sync(save=true){
+ if(previewReady){const style=$('preview').contentDocument.documentElement.style;for(const [group,fields] of Object.entries(theme))for(const [key,value] of Object.entries(fields))style.setProperty('--'+group+'-'+key,typeof value==='number'&&key!=='lineHeight'?value+'px':String(value));}
+ $('json').value=JSON.stringify(theme,null,2);
+ if(save){try{localStorage.setItem(storageKey,JSON.stringify(theme));message('Saved in this browser. Export JSON to keep or reuse your theme.')}catch{message('Live preview updated. Browser storage is unavailable; export JSON to keep changes.',true)}}
+}
+function apply(value){theme=validate(value);renderControls();sync()}
+$('apply').onclick=()=>{try{apply(JSON.parse($('json').value))}catch(e){message('Could not apply theme: '+e.message,true)}};
+$('reset').onclick=()=>apply(defaults);
+$('export').onclick=()=>{const blob=new Blob([JSON.stringify(theme,null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='open-civ-theme.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);message('Exported the applied theme as open-civ-theme.json.')};
+$('import').onclick=()=>$('file').click();
+$('file').onchange=async()=>{const file=$('file').files[0];if(!file)return;try{if(file.size>100000)throw Error('Choose a theme file smaller than 100 KB.');apply(JSON.parse(await file.text()))}catch(e){message('Could not import theme: '+e.message,true)}finally{$('file').value=''}};
+for(const mode of ['desktop','mobile'])$(mode).onclick=()=>{$('frame').classList.toggle('mobile',mode==='mobile');for(const m of ['desktop','mobile'])$(m).setAttribute('aria-pressed',String(m===mode))};
+$('preview').addEventListener('load',()=>{
+ previewReady=true;sync(false);const doc=$('preview').contentDocument;
+ doc.querySelectorAll('.diagram-copy').forEach((el,i)=>{const svg=doc.querySelector('#diagram svg').cloneNode(true);svg.querySelector('marker').id='arrow-copy-'+i;svg.querySelector('[marker-end]').setAttribute('marker-end','url(#arrow-copy-'+i+')');el.append(svg)});
+ doc.querySelectorAll('[data-screen]').forEach(button=>button.onclick=()=>{doc.querySelectorAll('.screen').forEach(el=>el.hidden=el.id!==button.dataset.screen);doc.querySelectorAll('[data-screen]').forEach(el=>el.setAttribute('aria-selected',String(el===button)))});
+ doc.querySelectorAll('.tools button').forEach(button=>button.onclick=()=>{doc.querySelectorAll('.tools button').forEach(el=>{el.classList.toggle('selected',el===button);el.setAttribute('aria-pressed',String(el===button))});doc.getElementById('tool-hint').textContent=button.textContent.trim()+' tool selected · visual demo'});
+ doc.querySelectorAll('[data-demo]').forEach(button=>button.onclick=()=>{doc.getElementById('demo-status').textContent=button.dataset.demo});
+ doc.querySelectorAll('[name=answer]').forEach(input=>input.onchange=()=>{doc.getElementById('submit-answer').disabled=false;doc.getElementById('answer-feedback').textContent=''});
+ doc.getElementById('submit-answer').onclick=()=>{const correct=doc.querySelector('[name=answer]:checked').value==='5';const feedback=doc.getElementById('answer-feedback');feedback.className=correct?'success':'error';feedback.textContent=correct?'✓ Correct! The centered load splits equally between the supports.':'Try again. Each support carries half the centered load. (Demo feedback)'};
+});
+renderControls();sync(false);$('preview').srcdoc=$('preview-template').innerHTML;
+</script>
+</body>
+</html>
