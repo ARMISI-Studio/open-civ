@@ -1,9 +1,12 @@
 import { delay, http, HttpResponse, type RequestHandler } from 'msw'
 import { API_BASE_URL, type ApiErrorBody } from '@/api/client'
 import type {
+  AnswerInputDto,
+  AnswerResultDto,
   QuestionDto,
   QuestionInputDto,
   QuestionShareDto,
+  SharedQuestionDto,
   StructureDto,
   StructureInputDto,
   StructureSummaryDto,
@@ -251,4 +254,73 @@ const questionHandlers: RequestHandler[] = [
   }),
 ]
 
-export const handlers: RequestHandler[] = [...structureHandlers, ...questionHandlers]
+// --- Shared questions and answers -----------------------------------------------------------
+
+function findShared(shareId: string) {
+  const db = getDb()
+  const share = db.shares.find((s) => s.shareId === shareId.toUpperCase())
+  const question = share && db.questions.find((q) => q.id === share.questionId)
+  return share && question ? { share, question } : null
+}
+
+const shareNotFound = () =>
+  errorResponse(404, 'not_found', 'This share link is invalid or the question is no longer shared.')
+
+const answerHandlers: RequestHandler[] = [
+  http.get<{ shareId: string }>(api('/shared/:shareId'), async ({ params }) => {
+    await delay(LATENCY_MS)
+    const found = findShared(params.shareId)
+    if (!found) return shareNotFound()
+    const { share, question } = found
+    const structure = getDb().structures.find((s) => s.id === question.structureId) ?? null
+    const dto: SharedQuestionDto = {
+      shareId: share.shareId,
+      title: question.title,
+      prompt: question.prompt,
+      answerType: question.answerType,
+      options: (question.options ?? []).map(({ id, text }) => ({ id, text })),
+      structure,
+    }
+    return HttpResponse.json(dto)
+  }),
+
+  http.post<{ shareId: string }, AnswerInputDto>(
+    api('/shared/:shareId/answers'),
+    async ({ params, request }) => {
+      await delay(LATENCY_MS)
+      const found = findShared(params.shareId)
+      if (!found) return shareNotFound()
+      const body = await request.json()
+      const options = found.question.options ?? []
+      const chosen = options.find((o) => o.id === body?.optionId)
+      if (!chosen) {
+        return errorResponse(422, 'validation_failed', 'Choose one of the listed answers.', {
+          optionId: 'Choose one of the listed answers.',
+        })
+      }
+      const correctOption = options.find((o) => o.correct)!
+      const result: AnswerResultDto = {
+        answerId: newId('ans'),
+        correct: chosen.correct,
+        correctOptionId: correctOption.id,
+        explanation: found.question.explanation,
+        submittedAt: now(),
+      }
+      getDb().answers.push({
+        answerId: result.answerId,
+        shareId: found.share.shareId,
+        optionId: chosen.id,
+        correct: chosen.correct,
+        submittedAt: result.submittedAt,
+      })
+      persist()
+      return HttpResponse.json(result, { status: 201 })
+    },
+  ),
+]
+
+export const handlers: RequestHandler[] = [
+  ...structureHandlers,
+  ...questionHandlers,
+  ...answerHandlers,
+]

@@ -49,7 +49,7 @@ const emit = defineEmits<{
 
 /** SVG user units per metre. */
 const SCALE = 60
-const PADDING = 1.5
+const PADDING = 1
 const LOAD_ARROW = 70
 
 const uid = useId()
@@ -59,9 +59,22 @@ const svg = ref<SVGSVGElement | null>(null)
 
 const nodesById = computed(() => new Map(props.structure.nodes.map((n) => [n.id, n])))
 
+/** Distance (m) from a node to the far end of its load arrow, including the label. */
+const LOAD_REACH = (10 + LOAD_ARROW + 40) / SCALE
+
 const bounds = computed(() => {
   const xs = props.structure.nodes.map((n) => n.x)
   const ys = props.structure.nodes.map((n) => n.y)
+  // Keep load arrows and their labels inside the drawing.
+  for (const load of props.structure.loads) {
+    const node = nodesById.value.get(load.nodeId)
+    const magnitude = loadMagnitude(load)
+    if (!node) continue
+    const ux = magnitude === 0 ? 0 : load.fx / magnitude
+    const uy = magnitude === 0 ? -1 : load.fy / magnitude
+    xs.push(node.x - ux * LOAD_REACH)
+    ys.push(node.y - uy * LOAD_REACH)
+  }
   // Editing keeps a comfortable minimum area; previews fit the structure.
   const base = props.readonly
     ? { minX: 0, maxX: 0, minY: 0, maxY: 0 }

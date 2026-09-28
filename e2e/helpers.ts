@@ -78,3 +78,26 @@ export async function drawSimpleBeam(page: Page, name: string) {
   await expect(element(page, 'Load at B, 10 kN')).toBeVisible()
   await tool(page, 'Select').click()
 }
+
+/**
+ * Creates and shares a multiple choice question on the seeded simply supported beam through
+ * the Question Builder, and returns the share link from the API.
+ */
+export async function createSharedQuestion(page: Page): Promise<string> {
+  await page.goto('/questions/create')
+  await page.getByRole('textbox', { name: /^Title/ }).fill('Find the support reaction')
+  await page.getByRole('textbox', { name: /^Prompt/ }).fill('What is the vertical reaction at A?')
+  await chooseOption(page, 'Structure (required)', /^Simply supported beam/)
+  await page.getByRole('textbox', { name: 'Option 1', exact: true }).fill('0 kN')
+  await page.getByRole('textbox', { name: 'Option 2', exact: true }).fill('5 kN upward')
+  await page.getByRole('radio', { name: 'Option 2 is correct' }).check()
+  await page
+    .getByRole('textbox', { name: /^Explanation/ })
+    .fill('By symmetry each support carries half of the 10 kN load.')
+  await page.getByRole('button', { name: 'Save question' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Question saved.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Create share link' }).click()
+  const link = page.getByRole('textbox', { name: 'Share link' })
+  await expect(link).toHaveValue(/\/questions\/answer\/[A-Z2-9]{8}$/)
+  return link.inputValue()
+}

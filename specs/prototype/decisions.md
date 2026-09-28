@@ -58,3 +58,10 @@ Small gaps in [prototype.md](prototype.md), [architecture.md](architecture.md), 
 27. **Save before sharing.** Sharing is disabled until the question is saved, and again while it has unsaved changes, so the link always points to what the author sees. The link, share code, and URL come from the API. Asking to share an already shared question returns the same link. The mock builds links as `<origin>/questions/answer/<shareId>` from an 8-character code.
 28. **Validation timing.** Question and structure errors appear after the first save attempt, next to each field and in a count by the save button. Server field errors (422) are mapped onto the same fields.
 29. **The builder is not a saved route.** After saving, the builder stays on `/questions/create`, and reloading starts a new question. The saved question, structure, and share link still exist through the API. Prototype.md lists no requirement to reopen questions for editing, and there is no question list endpoint.
+
+## Answer Questions
+
+30. **Share routes.** A shared link opens `/questions/answer/<shareId>`. `/questions/answer` itself shows a form that accepts a share code or a pasted link, ignoring case. Unknown codes get a clear error and a way back.
+31. **Immediate, anonymous feedback.** The specs leave both timing and identity open. The mock grades the answer straight away and returns whether it was correct, the correct option, and the author's explanation. Answers are stored without any user identity.
+32. **Duplicate protection.** Submit is disabled until an option is chosen and while the request is in flight. After a result, the options lock and the submit button disappears. Reloading the page allows another attempt, because answers are anonymous and there is no identity to deduplicate on.
+33. **What respondents receive.** Respondents get the question without the correct flags, with the structure embedded (`GET /shared/:shareId`), so the answer page makes one request.
