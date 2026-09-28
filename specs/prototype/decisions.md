@@ -84,3 +84,7 @@ Prototype.md was updated for this change.
 37. **Questions can be reopened.** `GET /questions` lists questions with their structure name and share status. Opening one loads it into the builder, where it can be edited, saved, and shared. After the first save, a new question moves to its own URL.
 38. **The Answers list shows every currently shared question.** It uses `GET /shared`. There are no accounts, so "questions you can answer" means every question that is currently shared. When accounts exist, this endpoint can filter by user. A local history of opened questions was rejected because app data must go through the API. The share-code form stays at the top of the page.
 39. **The editors lost their pickers.** With list pages in place, the Structure Editor no longer has an "Open a saved structure" select or a "New structure" button, and the Question Builder no longer has a "New question" button. Each has a "← All …" link back to its list. Leaving an editor with unsaved changes always asks first.
+
+## Developer tooling
+
+40. **Mock network simulation.** `src/mocks/simulation.ts` holds named profiles (instant, normal, slow, flaky, down) and per-route rules for latency, jitter, and failure rate. One MSW handler applies them before every API request, so the endpoint handlers no longer add their own delay. Failures use the standard error body (`simulated_failure`, 503 by default). The profile can be picked per run with `VITE_MOCK_PROFILE`. Unit tests are pinned to `instant` and e2e tests to `normal`, so editing the file never breaks the test suites.

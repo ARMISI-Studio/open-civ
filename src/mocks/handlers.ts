@@ -16,11 +16,9 @@ import type {
 import { validateStructure } from '@/domain/structures'
 import { newOptionDraft, validateQuestion } from '@/domain/questions'
 import { type MockDb, getDb, newId, newShareId, now, persist } from './db'
+import { resolveConfig, simulate } from './simulation'
 
 const api = (path: string) => `${API_BASE_URL}${path}`
-
-/** Simulated network latency so loading states are visible in the running app. */
-const LATENCY_MS = import.meta.env.MODE === 'test' ? 0 : 300
 
 export function errorResponse(
   status: number,
@@ -52,7 +50,6 @@ function validateStructureInput(body: StructureInputDto) {
 
 const structureHandlers: RequestHandler[] = [
   http.get(api('/structures'), async () => {
-    await delay(LATENCY_MS)
     const summaries: StructureSummaryDto[] = [...getDb().structures]
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .map(({ id, name, description, updatedAt }) => ({ id, name, description, updatedAt }))
@@ -60,7 +57,6 @@ const structureHandlers: RequestHandler[] = [
   }),
 
   http.post<never, StructureInputDto>(api('/structures'), async ({ request }) => {
-    await delay(LATENCY_MS)
     const body = await request.json()
     const invalid = validateStructureInput(body)
     if (invalid) return invalid
@@ -77,7 +73,6 @@ const structureHandlers: RequestHandler[] = [
   }),
 
   http.get<{ id: string }>(api('/structures/:id'), async ({ params }) => {
-    await delay(LATENCY_MS)
     const structure = getDb().structures.find((s) => s.id === params.id)
     return structure ? HttpResponse.json(structure) : notFound('Structure')
   }),
@@ -85,7 +80,6 @@ const structureHandlers: RequestHandler[] = [
   http.put<{ id: string }, StructureInputDto>(
     api('/structures/:id'),
     async ({ params, request }) => {
-      await delay(LATENCY_MS)
       const db = getDb()
       const index = db.structures.findIndex((s) => s.id === params.id)
       if (index === -1) return notFound('Structure')
@@ -105,7 +99,6 @@ const structureHandlers: RequestHandler[] = [
   ),
 
   http.delete<{ id: string }>(api('/structures/:id'), async ({ params }) => {
-    await delay(LATENCY_MS)
     const db = getDb()
     if (!db.structures.some((s) => s.id === params.id)) return notFound('Structure')
     if (db.questions.some((q) => q.structureId === params.id)) {
@@ -182,7 +175,6 @@ function storedOptions(body: QuestionInputDto, previous: StoredQuestion['options
 
 const questionHandlers: RequestHandler[] = [
   http.get(api('/questions'), async ({ request }) => {
-    await delay(LATENCY_MS)
     const db = getDb()
     const summaries: QuestionSummaryDto[] = [...db.questions]
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -198,7 +190,6 @@ const questionHandlers: RequestHandler[] = [
   }),
 
   http.post<never, QuestionInputDto>(api('/questions'), async ({ request }) => {
-    await delay(LATENCY_MS)
     const body = await request.json()
     const invalid = validateQuestionInput(body)
     if (invalid) return invalid
@@ -220,13 +211,11 @@ const questionHandlers: RequestHandler[] = [
   }),
 
   http.get<{ id: string }>(api('/questions/:id'), async ({ params, request }) => {
-    await delay(LATENCY_MS)
     const question = getDb().questions.find((q) => q.id === params.id)
     return question ? HttpResponse.json(toQuestionDto(question, request)) : notFound('Question')
   }),
 
   http.put<{ id: string }, QuestionInputDto>(api('/questions/:id'), async ({ params, request }) => {
-    await delay(LATENCY_MS)
     const db = getDb()
     const index = db.questions.findIndex((q) => q.id === params.id)
     if (index === -1) return notFound('Question')
@@ -250,7 +239,6 @@ const questionHandlers: RequestHandler[] = [
   }),
 
   http.post<{ id: string }>(api('/questions/:id/share'), async ({ params, request }) => {
-    await delay(LATENCY_MS)
     const db = getDb()
     const question = db.questions.find((q) => q.id === params.id)
     if (!question) return notFound('Question')
@@ -287,7 +275,6 @@ const shareNotFound = () =>
 const answerHandlers: RequestHandler[] = [
   // No accounts yet: every currently shared question is available to answer.
   http.get(api('/shared'), async () => {
-    await delay(LATENCY_MS)
     const db = getDb()
     const summaries: SharedQuestionSummaryDto[] = [...db.shares]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -308,7 +295,6 @@ const answerHandlers: RequestHandler[] = [
   }),
 
   http.get<{ shareId: string }>(api('/shared/:shareId'), async ({ params }) => {
-    await delay(LATENCY_MS)
     const found = findShared(params.shareId)
     if (!found) return shareNotFound()
     const { share, question } = found
@@ -327,7 +313,6 @@ const answerHandlers: RequestHandler[] = [
   http.post<{ shareId: string }, AnswerInputDto>(
     api('/shared/:shareId/answers'),
     async ({ params, request }) => {
-      await delay(LATENCY_MS)
       const found = findShared(params.shareId)
       if (!found) return shareNotFound()
       const body = await request.json()
@@ -359,7 +344,27 @@ const answerHandlers: RequestHandler[] = [
   ),
 ]
 
+/**
+ * Runs first for every API request: waits and sometimes fails, as set in ./simulation.ts.
+ * Returning nothing hands the request on to the real mock handler.
+ */
+const simulation = resolveConfig()
+const apiBasePath = new URL(API_BASE_URL, 'http://localhost').pathname.replace(/\/$/, '')
+const simulationHandler = http.all(api('/*'), async ({ request }) => {
+  const path = new URL(request.url).pathname.slice(apiBasePath.length)
+  const outcome = simulate(simulation, request.method, path)
+  await delay(outcome.delayMs)
+  if (outcome.failStatus !== null) {
+    return errorResponse(
+      outcome.failStatus,
+      'simulated_failure',
+      'The server is not responding right now. Please try again.',
+    )
+  }
+})
+
 export const handlers: RequestHandler[] = [
+  simulationHandler,
   ...structureHandlers,
   ...questionHandlers,
   ...answerHandlers,
