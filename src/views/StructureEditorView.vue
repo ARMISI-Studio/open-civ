@@ -9,6 +9,7 @@ import StructureList from '@/components/structures/StructureList.vue'
 import StructureWorkspace from '@/components/structures/StructureWorkspace.vue'
 import { useStructureEditor } from '@/composables/useStructureEditor'
 import { useStructures } from '@/composables/useStructures'
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { NAME_MAX_LENGTH, createEmptyStructure } from '@/domain/structures'
 
 const props = defineProps<{ structureId?: string }>()
@@ -16,6 +17,9 @@ const props = defineProps<{ structureId?: string }>()
 const router = useRouter()
 const editor = useStructureEditor()
 const api = useStructures()
+
+// Switching between structures inside the editor asks separately (confirmDiscard).
+useUnsavedChangesGuard(editor.isDirty, (to) => to.path.startsWith('/structures'))
 
 /** Validation messages are shown after the first save attempt. */
 const attemptedSave = ref(false)

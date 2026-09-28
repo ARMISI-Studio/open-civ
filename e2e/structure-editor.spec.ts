@@ -131,3 +131,25 @@ test('deletes a saved structure after confirmation', async ({ page }) => {
   await chooseOption(page, 'Open a saved structure', /^Simply supported beam/)
   await expect(page.getByRole('option', { name: /Cantilever/ })).toHaveCount(0)
 })
+
+test('asks before leaving the editor with unsaved changes', async ({ page }) => {
+  await page.goto('/structures/str_simplebeam')
+  await expect(element(page, 'Member A–B, 3 m')).toBeVisible()
+  await page.getByRole('textbox', { name: /Structure name/ }).fill('Renamed beam')
+  const builderTab = page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Question Builder' })
+
+  page.once('dialog', (dialog) => {
+    expect(dialog.message()).toContain('You have unsaved changes.')
+    return dialog.dismiss()
+  })
+  await builderTab.click()
+  await expect(page).toHaveURL(/\/structures\/str_simplebeam$/)
+  await expect(page.getByRole('textbox', { name: /Structure name/ })).toHaveValue('Renamed beam')
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await builderTab.click()
+  await expect(page).toHaveURL(/\/questions\/create$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Question Builder' })).toBeVisible()
+})

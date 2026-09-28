@@ -6,11 +6,29 @@ import ShareQuestionPanel from '@/components/questions/ShareQuestionPanel.vue'
 import StructurePreview from '@/components/structures/StructurePreview.vue'
 import { useQuestionBuilder } from '@/composables/useQuestionBuilder'
 import { useStructures } from '@/composables/useStructures'
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import type { Structure } from '@/domain/structures'
 
 const builder = useQuestionBuilder()
 const structures = useStructures()
 const preview = ref<Structure | null>(null)
+
+/** Anything typed that is not saved yet. A fresh, untouched form counts as clean. */
+const hasUnsavedWork = computed(() =>
+  builder.isSaved.value ? builder.isDirty.value : builder.isDirty.value && isTouched.value,
+)
+const isTouched = computed(() => {
+  const d = builder.draft.value
+  return (
+    !!d.title.trim() ||
+    !!d.prompt.trim() ||
+    !!d.explanation.trim() ||
+    !!d.structureId ||
+    d.options.some((o) => o.text.trim()) ||
+    builder.newStructure.isDirty.value
+  )
+})
+useUnsavedChangesGuard(hasUnsavedWork)
 
 onMounted(() => structures.refreshList())
 
@@ -37,7 +55,7 @@ async function save() {
 }
 
 function startNew() {
-  if (builder.isDirty.value && !window.confirm('Discard this question and start a new one?')) return
+  if (hasUnsavedWork.value && !window.confirm('Discard this question and start a new one?')) return
   builder.reset()
   preview.value = null
 }

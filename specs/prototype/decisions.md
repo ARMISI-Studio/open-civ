@@ -65,3 +65,8 @@ Small gaps in [prototype.md](prototype.md), [architecture.md](architecture.md), 
 31. **Immediate, anonymous feedback.** The specs leave both timing and identity open. The mock grades the answer straight away and returns whether it was correct, the correct option, and the author's explanation. Answers are stored without any user identity.
 32. **Duplicate protection.** Submit is disabled until an option is chosen and while the request is in flight. After a result, the options lock and the submit button disappears. Reloading the page allows another attempt, because answers are anonymous and there is no identity to deduplicate on.
 33. **What respondents receive.** Respondents get the question without the correct flags, with the structure embedded (`GET /shared/:shareId`), so the answer page makes one request.
+
+## Hardening (step 5)
+
+34. **Unsaved-changes guard.** The Structure Editor and Question Builder ask for confirmation before navigating away with unsaved work, and the browser shows its standard prompt on reload or tab close. Moving between structures inside the editor uses the editor's own confirmation, so you are only asked once.
+35. **Architecture guard tests.** `src/__tests__/architecture.spec.ts` fails if code outside `src/api/` makes network calls or uses DTO types, or if anything other than the theme uses browser storage. This keeps two acceptance criteria true as the code changes: persistence goes through the API modules, and the API types stay in one place.
