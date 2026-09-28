@@ -183,7 +183,7 @@ export function describeElement(structure: StructureDraft, ref: ElementRef): str
 
 /**
  * Checks a structure before it is saved. Returns every problem found; an empty list means valid.
- * Structural stability is not checked (there is no solver).
+ * Structural stability is not checked here; the load analysis (analysis/frame2d.ts) reports it.
  */
 export function validateStructure(structure: StructureDraft): StructureIssue[] {
   const issues: StructureIssue[] = []

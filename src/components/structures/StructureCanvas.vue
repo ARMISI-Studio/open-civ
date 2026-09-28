@@ -18,6 +18,9 @@ import {
   memberLength,
 } from '@/domain/structures'
 import type { EditorTool } from '@/composables/useStructureEditor'
+import { SUPPORT_RESTRAINTS, type AnalysisResult, deflectedMember } from '@/domain/analysis/frame2d'
+
+type SolvedAnalysis = Extract<AnalysisResult, { status: 'solved' }>
 
 const props = withDefaults(
   defineProps<{
@@ -29,6 +32,10 @@ const props = withDefaults(
     readonly?: boolean
     /** Accessible description of the drawing. */
     label?: string
+    /** Analysis results to draw: reactions and the deflected shape. */
+    analysis?: SolvedAnalysis | null
+    /** How much to exaggerate displacements in the deflected shape. */
+    deflectionScale?: number
   }>(),
   {
     selection: null,
@@ -37,6 +44,8 @@ const props = withDefaults(
     issues: () => [],
     readonly: false,
     label: undefined,
+    analysis: null,
+    deflectionScale: 0,
   },
 )
 
@@ -55,12 +64,26 @@ const LOAD_ARROW = 70
 const uid = useId()
 const gridId = `${uid}-grid`
 const arrowId = `${uid}-arrow`
+const reactionArrowId = `${uid}-reaction-arrow`
 const svg = ref<SVGSVGElement | null>(null)
 
 const nodesById = computed(() => new Map(props.structure.nodes.map((n) => [n.id, n])))
 
 /** Distance (m) from a node to the far end of its load arrow, including the label. */
 const LOAD_REACH = (10 + LOAD_ARROW + 40) / SCALE
+
+/** Distance (m) from a support's node to the far end of its reaction arrows and labels. */
+const REACTION_REACH = 130 / SCALE
+
+/** Deflected shape of each member, in metres. */
+const deflected = computed(() => {
+  const analysis = props.analysis
+  if (!analysis) return []
+  return props.structure.members.map((m) => ({
+    id: m.id,
+    points: deflectedMember(props.structure, analysis, m.id, props.deflectionScale),
+  }))
+})
 
 const bounds = computed(() => {
   const xs = props.structure.nodes.map((n) => n.x)
@@ -74,6 +97,21 @@ const bounds = computed(() => {
     const uy = magnitude === 0 ? -1 : load.fy / magnitude
     xs.push(node.x - ux * LOAD_REACH)
     ys.push(node.y - uy * LOAD_REACH)
+  }
+  // Keep reaction arrows and the deflected shape inside the drawing.
+  if (props.analysis) {
+    for (const support of props.structure.supports) {
+      const node = nodesById.value.get(support.nodeId)
+      if (!node) continue
+      xs.push(node.x - REACTION_REACH, node.x + REACTION_REACH)
+      ys.push(node.y - REACTION_REACH)
+    }
+    for (const line of deflected.value) {
+      for (const p of line.points) {
+        xs.push(p.x)
+        ys.push(p.y)
+      }
+    }
   }
   // Editing keeps a comfortable minimum area; previews fit the structure.
   const base = props.readonly
@@ -206,6 +244,72 @@ const loads = computed(() =>
   props.structure.loads.flatMap((l) => {
     const geometry = loadGeometry(l)
     return geometry ? [{ ref: { kind: 'load', id: l.id } as ElementRef, ...geometry }] : []
+  }),
+)
+
+const deflectedPaths = computed(() =>
+  deflected.value.map((line) => ({
+    id: line.id,
+    points: line.points.map((p) => `${sx(p.x)},${sy(p.y)}`).join(' '),
+  })),
+)
+
+/** Treat tiny floating-point values as zero when choosing what to draw. */
+const isZero = (value: number) => Math.abs(value) < 1e-6
+
+/**
+ * Reaction arrows, drawn beside the support symbol: Ry below it, Rx to its left,
+ * and M as a curved-arrow label. Arrows point the way the reaction acts.
+ */
+const reactions = computed(() =>
+  (props.analysis?.reactions ?? []).flatMap((r) => {
+    const n = nodesById.value.get(r.nodeId)
+    const support = props.structure.supports.find((s) => s.id === r.supportId)
+    if (!n || !support) return []
+    const [fixesX, fixesY, fixesRotation] = SUPPORT_RESTRAINTS[support.type]
+    const x = sx(n.x)
+    const y = sy(n.y)
+    const arrows: { key: string; x1: number; y1: number; x2: number; y2: number }[] = []
+    const texts: { key: string; x: number; y: number; anchor: string; text: string }[] = []
+    if (fixesY && !isZero(r.ry)) {
+      const [from, to] = r.ry > 0 ? [y + 110, y + 50] : [y + 50, y + 110]
+      arrows.push({ key: 'ry', x1: x, y1: from, x2: x, y2: to })
+      texts.push({
+        key: 'ry',
+        x: x + 8,
+        y: y + 125,
+        anchor: 'start',
+        text: `${formatNumber(Math.abs(r.ry))} ${UNITS.force}`,
+      })
+    }
+    if (fixesX && !isZero(r.rx)) {
+      const [from, to] = r.rx > 0 ? [x - 100, x - 28] : [x - 28, x - 100]
+      arrows.push({ key: 'rx', x1: from, y1: y + 30, x2: to, y2: y + 30 })
+      texts.push({
+        key: 'rx',
+        x: x - 64,
+        y: y + 22,
+        anchor: 'middle',
+        text: `${formatNumber(Math.abs(r.rx))} ${UNITS.force}`,
+      })
+    }
+    if (fixesRotation && !isZero(r.mz)) {
+      texts.push({
+        key: 'mz',
+        x: x + 28,
+        y: y + 34,
+        anchor: 'start',
+        text: `${r.mz > 0 ? '↺' : '↻'} ${formatNumber(Math.abs(r.mz))} ${UNITS.force}·${UNITS.length}`,
+      })
+    }
+    const parts = [
+      fixesX ? `Rx ${formatNumber(r.rx)} ${UNITS.force}` : null,
+      fixesY ? `Ry ${formatNumber(r.ry)} ${UNITS.force}` : null,
+      fixesRotation ? `M ${formatNumber(r.mz)} ${UNITS.force}·${UNITS.length}` : null,
+    ].filter(Boolean)
+    return [
+      { id: r.supportId, label: `Reaction at ${n.label}: ${parts.join(', ')}`, arrows, texts },
+    ]
   }),
 )
 
@@ -359,6 +463,17 @@ defineExpose({ svg, SCALE })
       >
         <path class="structure-canvas__arrowhead" d="M 0 0 L 10 5 L 0 10 z" />
       </marker>
+      <marker
+        :id="reactionArrowId"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="5"
+        markerHeight="5"
+        orient="auto-start-reverse"
+      >
+        <path class="structure-canvas__reaction-arrowhead" d="M 0 0 L 10 5 L 0 10 z" />
+      </marker>
     </defs>
 
     <rect
@@ -432,6 +547,15 @@ defineExpose({ svg, SCALE })
     <line v-if="pendingLine" class="structure-canvas__pending" v-bind="pendingLine" />
 
     <g
+      v-if="analysis"
+      class="structure-canvas__deflected"
+      data-testid="deflected-shape"
+      aria-hidden="true"
+    >
+      <polyline v-for="line in deflectedPaths" :key="line.id" :points="line.points" />
+    </g>
+
+    <g
       v-for="s in supports"
       :key="s.ref.id"
       class="structure-canvas__support"
@@ -456,6 +580,35 @@ defineExpose({ svg, SCALE })
         <circle class="structure-canvas__support-shape" cx="-7" cy="32" r="5" />
         <circle class="structure-canvas__support-shape" cx="7" cy="32" r="5" />
       </template>
+    </g>
+
+    <g
+      v-for="r in reactions"
+      :key="r.id"
+      class="structure-canvas__reaction"
+      role="img"
+      :aria-label="r.label"
+    >
+      <line
+        v-for="a in r.arrows"
+        :key="a.key"
+        class="structure-canvas__reaction-line"
+        :x1="a.x1"
+        :y1="a.y1"
+        :x2="a.x2"
+        :y2="a.y2"
+        :marker-end="`url(#${reactionArrowId})`"
+      />
+      <text
+        v-for="t in r.texts"
+        :key="t.key"
+        class="structure-canvas__reaction-label"
+        :x="t.x"
+        :y="t.y"
+        :text-anchor="t.anchor"
+      >
+        {{ t.text }}
+      </text>
     </g>
 
     <g
@@ -674,6 +827,36 @@ defineExpose({ svg, SCALE })
 .structure-canvas__load-label {
   fill: var(--colors-warning);
   font-size: 15px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--colors-surface);
+  stroke-width: 4;
+}
+
+.structure-canvas__deflected {
+  fill: none;
+  stroke: var(--colors-primary);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  pointer-events: none;
+}
+
+.structure-canvas__reaction {
+  pointer-events: none;
+}
+
+.structure-canvas__reaction-line {
+  stroke: var(--colors-success);
+  stroke-width: 3;
+}
+
+.structure-canvas__reaction-arrowhead {
+  fill: var(--colors-success);
+}
+
+.structure-canvas__reaction-label {
+  fill: var(--colors-success);
+  font-size: 14px;
   font-weight: 600;
   paint-order: stroke;
   stroke: var(--colors-surface);

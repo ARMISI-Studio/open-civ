@@ -58,6 +58,8 @@ src/
     questions.ts
     answers.ts
   domain/
+    analysis/
+      frame2d.ts        # load analysis: all structural calculations, for engineering review
     structures.ts
     questions.ts
     answers.ts
@@ -220,6 +222,7 @@ Unit tests should cover:
 - Question form validation.
 - Share action success and failure states.
 - Answer form validation and submit state.
+- Load analysis against hand-checkable textbook cases, including unstable structures.
 
 End-to-end tests should cover:
 
@@ -228,6 +231,7 @@ End-to-end tests should cover:
 - Creating a question from a structure.
 - Sharing a question.
 - Opening and answering a shared question.
+- Showing load analysis results for a structure.
 - Mobile viewport navigation.
 
 Browser tests for shared controls should cover keyboard navigation, selection, Escape/Tab behavior, focus handling, and a dropdown inside a scrollable panel. Check dropdown placement on mobile and after theme changes. Review the component preview for hover, focus, selected, loading, disabled, and error states.

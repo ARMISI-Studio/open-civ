@@ -29,7 +29,7 @@ Out of scope for the frontend project:
 - Implementing the backend server.
 - Implementing database persistence directly in the frontend.
 - Building authentication unless the backend/API requirements explicitly require it.
-- Creating a full structural solver. A simple load analysis is planned separately; see [Area 4](#area-4-load-analysis-planned).
+- Creating a full structural solver. A simple load analysis is part of the app; see [Area 4](#area-4-load-analysis).
 
 ## Main app navigation
 
@@ -182,9 +182,7 @@ Let people answer questions that have been created and shared.
 
 Shared links open `/answers/:shareId`. The earlier forms `/questions/answer` and `/questions/answer/:shareId` redirect to `/answers` and `/answers/:shareId`. A shorter public route such as `/q/:shareId` can still be decided with the backend/API contract.
 
-## Area 4: Load analysis (planned)
-
-Status: planned, not yet specified in detail and not part of the current build or its acceptance criteria.
+## Area 4: Load analysis
 
 ### Purpose
 
@@ -198,15 +196,22 @@ Let users see how a structure responds to its loads, in the spirit of tools like
 - The file comes with worked test cases whose expected results a structural engineer can check by hand (for example, a simply supported beam with a central point load).
 - UI code only displays the results and never re-implements engineering calculations.
 
-### Open questions
+### First version
 
-To settle before building:
+The open questions were settled with the simplest option each. The choices are logged in [decisions.md](decisions.md) (40–44), and each can be revisited.
 
-- Which results to show: support reactions only, member end forces, deflected shape, or axial/shear/moment diagrams.
-- Which load types to support: the current nodal point loads only, or also distributed loads on members and point moments.
-- Material and section properties: fixed defaults, or editable per member.
-- Where the analysis runs: in the frontend, or as a backend API endpoint (the reviewable-file rule applies either way).
-- Whether questions can use analysis results, for example to generate or check the correct answer.
+- Results: support reactions, member end forces (axial force, shear, and bending moment at each end), and an exaggerated deflected shape drawn on the canvas.
+- Loads: the existing point loads at nodes only.
+- Material and section: one fixed default (steel, about an IPE 300) for every member, stated next to the results.
+- It runs in the frontend, in `src/domain/analysis/frame2d.ts`, with hand-checkable tests beside it.
+- Questions do not use analysis results, and answer pages do not show them.
+
+### Behaviour
+
+- The structure workspace has a Show results / Hide results toggle. It is available in the Structure Editor and when drawing a new structure in the Question Builder.
+- Results update while the structure is edited.
+- If the structure has problems, results ask for them to be fixed first. If it can move freely (a mechanism or too few supports), results say it is unstable.
+- Reactions are drawn as arrows with values at each support. Fixed supports also show their moment.
 
 ## Backend API expectations
 
@@ -313,6 +318,7 @@ Exit criterion: the frontend works against the backend API in development.
 - API types are centralized and easy to update when the backend contract changes.
 - Loading, validation, and error states are visible to users.
 - The layout works on desktop and mobile.
+- The structure workspace can show support reactions, member end forces, and the deflected shape. The calculations live in one file that a structural engineer can review, with hand-checkable tests.
 
 Architecture, implementation rules, and testing expectations live in [architecture.md](architecture.md).
 

@@ -16,6 +16,10 @@ The product spec lives in [specs/prototype/](specs/prototype/): [prototype.md](s
 | `/answers/:shareId` | Answer a shared question |
 | `/ui-preview` | Shared UI components and theme import (not in the main tabs) |
 
+## Load analysis
+
+The structure workspace has a **Show results** toggle. It shows support reactions, member end forces, and the deflected shape. All of the structural calculations are in [src/domain/analysis/frame2d.ts](src/domain/analysis/frame2d.ts), written to be reviewed by a structural engineer. The file header states the method, assumptions, units, and sign conventions. [The tests beside it](src/domain/analysis/__tests__/frame2d.spec.ts) check textbook cases that can be worked by hand.
+
 ## Mock backend
 
 There is no backend yet. [MSW](https://mswjs.io) answers every API request in the browser from `src/mocks/`, and stores its data in `localStorage`. To reset the data, clear the site's storage.

@@ -84,3 +84,14 @@ Prototype.md was updated for this change.
 37. **Questions can be reopened.** `GET /questions` lists questions with their structure name and share status. Opening one loads it into the builder, where it can be edited, saved, and shared. After the first save, a new question moves to its own URL.
 38. **The Answers list shows every currently shared question.** It uses `GET /shared`. There are no accounts, so "questions you can answer" means every question that is currently shared. When accounts exist, this endpoint can filter by user. A local history of opened questions was rejected because app data must go through the API. The share-code form stays at the top of the page.
 39. **The editors lost their pickers.** With list pages in place, the Structure Editor no longer has an "Open a saved structure" select or a "New structure" button, and the Question Builder no longer has a "New question" button. Each has a "← All …" link back to its list. Leaving an editor with unsaved changes always asks first.
+
+## Load analysis (requested after the first build)
+
+The open questions in prototype.md Area 4 had no answers yet, so each got the simplest option. Prototype.md was updated to match.
+
+40. **What is calculated.** Support reactions, member end forces (N, V, M at each end), and the deflected shape. Axial, shear, and moment diagrams along members were left out. The end forces are enough to draw them later, because with nodal loads only, V is constant and M is linear along each member.
+41. **Method and code location.** A linear-elastic 2D frame analysis by the direct stiffness method, in `src/domain/analysis/frame2d.ts`. The file header lists the method, references, assumptions, units, and sign conventions for an engineer to review. Its tests (`src/domain/analysis/__tests__/frame2d.spec.ts`) check textbook cases by hand formula: a simply supported beam, a cantilever, an axial bar, a propped cantilever, portal frame equilibrium, and unstable supports. All joints are rigid. A roller fixes vertical movement only, matching its existing description in the editor.
+42. **One default section.** Every member is steel (E = 200 GPa) with A = 53.8 cm² and I = 8356 cm⁴, about an IPE 300. The results panel states this. Reactions and forces in statically determinate structures don't depend on it; displacements do. Per-member properties would need a model and API change.
+43. **Loads unchanged.** Only the existing nodal point loads are analysed, so the structure model and API contract are unchanged.
+44. **Where results appear.** A Show results toggle in the structure workspace, off by default, so the Structure Editor and the Question Builder both have it. Results are computed in the browser and update while editing. Read-only previews, including the answer page, never show results, so they can't give away an answer.
+

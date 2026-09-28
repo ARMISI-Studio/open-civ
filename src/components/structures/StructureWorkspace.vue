@@ -8,8 +8,11 @@ import StructureCanvas from './StructureCanvas.vue'
 import StructureToolbar from './StructureToolbar.vue'
 import StructurePropertiesPanel from './StructurePropertiesPanel.vue'
 import StructureIssues from './StructureIssues.vue'
+import StructureResults from './StructureResults.vue'
+import UiButton from '@/components/ui/atoms/UiButton.vue'
 import type { StructureEditor } from '@/composables/useStructureEditor'
 import { UNITS } from '@/domain/structures'
+import { type AnalysisResult, analyzeStructure, maxDisplacement } from '@/domain/analysis/frame2d'
 
 const props = defineProps<{ editor: StructureEditor }>()
 const e = props.editor
@@ -65,6 +68,36 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
+// --- Load analysis ---------------------------------------------------------------------------
+// Results update live while the structure is edited.
+const showResults = ref(false)
+
+const analysis = computed<AnalysisResult | null>(() => {
+  if (!showResults.value) return null
+  // The name doesn't matter for analysis; any other problem does.
+  if (e.issues.value.some((i) => i.field !== 'name')) {
+    return { status: 'invalid', message: 'Fix the problems listed above to see results.' }
+  }
+  return analyzeStructure(e.structure.value)
+})
+const solved = computed(() => (analysis.value?.status === 'solved' ? analysis.value : null))
+const largestDisplacement = computed(() =>
+  solved.value ? maxDisplacement(e.structure.value, solved.value) : 0,
+)
+
+/** Exaggerate displacements so the largest one is drawn at about a tenth of the structure's size. */
+const deflectionScale = computed(() => {
+  const nodes = e.structure.value.nodes
+  if (!solved.value || largestDisplacement.value === 0 || nodes.length === 0) return 0
+  const xs = nodes.map((n) => n.x)
+  const ys = nodes.map((n) => n.y)
+  const size = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 1)
+  const raw = (0.1 * size) / largestDisplacement.value
+  // Round to two significant figures so the stated factor is exact.
+  const magnitude = 10 ** Math.floor(Math.log10(raw) - 1)
+  return Math.round(raw / magnitude) * magnitude
+})
+
 // Properties collapse on small screens; they open when something is selected.
 const propertiesOpen = ref(true)
 onMounted(() => {
@@ -99,6 +132,8 @@ watch(
         :tool="e.tool.value"
         :pending-member-start="e.pendingMemberStart.value"
         :issues="e.issues.value"
+        :analysis="solved"
+        :deflection-scale="deflectionScale"
         @canvas-click="e.canvasClick"
         @element-click="e.elementClick"
         @node-drag="onDrag"
@@ -106,12 +141,24 @@ watch(
       />
       <div class="structure-workspace__footer">
         <span role="status" class="structure-workspace__hint">{{ hint }}</span>
-        <span>Units: {{ UNITS.length }}, {{ UNITS.force }}</span>
+        <span class="structure-workspace__footer-end">
+          <span>Units: {{ UNITS.length }}, {{ UNITS.force }}</span>
+          <UiButton size="small" :aria-pressed="showResults" @click="showResults = !showResults">
+            {{ showResults ? 'Hide results' : 'Show results' }}
+          </UiButton>
+        </span>
       </div>
       <StructureIssues
         class="structure-workspace__issues"
         :issues="e.issues.value"
         @select="e.select"
+      />
+      <StructureResults
+        v-if="analysis"
+        :structure="e.structure.value"
+        :result="analysis"
+        :max-displacement="largestDisplacement"
+        :deflection-scale="deflectionScale"
       />
     </div>
 
@@ -158,6 +205,17 @@ watch(
   border-top: var(--border-width) solid var(--colors-border);
   color: var(--colors-muted);
   font-size: var(--fonts-label);
+}
+
+.structure-workspace__footer {
+  align-items: center;
+}
+
+.structure-workspace__footer-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-medium);
 }
 
 .structure-workspace__issues {
