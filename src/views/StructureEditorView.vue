@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import UiButton from '@/components/ui/atoms/UiButton.vue'
 import UiInput from '@/components/ui/atoms/UiInput.vue'
 import UiStatus from '@/components/ui/atoms/UiStatus.vue'
 import UiField from '@/components/ui/molecules/UiField.vue'
-import StructureList from '@/components/structures/StructureList.vue'
 import StructureWorkspace from '@/components/structures/StructureWorkspace.vue'
 import { useStructureEditor } from '@/composables/useStructureEditor'
 import { useStructures } from '@/composables/useStructures'
@@ -18,8 +17,7 @@ const router = useRouter()
 const editor = useStructureEditor()
 const api = useStructures()
 
-// Switching between structures inside the editor asks separately (confirmDiscard).
-useUnsavedChangesGuard(editor.isDirty, (to) => to.path.startsWith('/structures'))
+useUnsavedChangesGuard(editor.isDirty)
 
 /** Validation messages are shown after the first save attempt. */
 const attemptedSave = ref(false)
@@ -31,17 +29,6 @@ const nameError = computed(() => {
     : undefined
   return local ?? api.saveFieldErrors.value.name
 })
-
-const openId = computed({
-  get: () => editor.structure.value.id ?? null,
-  set: (id: string | null) => {
-    if (id && id !== editor.structure.value.id && confirmDiscard()) router.push(`/structures/${id}`)
-  },
-})
-
-function confirmDiscard() {
-  return !editor.isDirty.value || window.confirm('Discard unsaved changes to this structure?')
-}
 
 async function loadRoute(id: string | undefined) {
   // Already showing it, e.g. right after the first save redirected to its URL.
@@ -59,16 +46,7 @@ async function loadRoute(id: string | undefined) {
 }
 
 watch(() => props.structureId, loadRoute)
-onMounted(() => {
-  loadRoute(props.structureId)
-  api.refreshList()
-})
-
-function startNew() {
-  if (!confirmDiscard()) return
-  if (props.structureId) router.push('/structures')
-  else loadRoute(undefined)
-}
+onMounted(() => loadRoute(props.structureId))
 
 async function save() {
   attemptedSave.value = true
@@ -111,14 +89,11 @@ watch(
   <section class="structure-editor">
     <header class="structure-editor__header">
       <div class="structure-editor__title">
-        <h1>Structure Editor</h1>
+        <RouterLink class="structure-editor__back" to="/structures">← All structures</RouterLink>
+        <h1>{{ structureId ? 'Edit structure' : 'New structure' }}</h1>
         <p class="structure-editor__subtitle">Draw a 2D structure, then use it in questions.</p>
       </div>
       <div class="structure-editor__actions">
-        <UiButton @click="startNew">
-          <template #icon>＋</template>
-          New structure
-        </UiButton>
         <UiButton
           v-if="editor.structure.value.id"
           variant="danger"
@@ -142,7 +117,7 @@ watch(
       <UiStatus v-if="isLoading" tone="loading">Loading structure…</UiStatus>
       <UiStatus v-else-if="api.loadStatus.value === 'error' && structureId" tone="error">
         {{ api.loadError.value }}
-        <RouterLink to="/structures">Start a new structure</RouterLink>
+        <RouterLink to="/structures">Back to all structures</RouterLink>
       </UiStatus>
       <UiStatus v-if="savedMessage && !editor.isDirty.value" tone="success">{{
         savedMessage
@@ -189,14 +164,6 @@ watch(
             @blur="editor.endEdit()"
           />
         </UiField>
-        <StructureList
-          v-model="openId"
-          label="Open a saved structure"
-          :structures="api.summaries.value"
-          :status="api.listStatus.value"
-          :error="api.listError.value"
-          @retry="api.refreshList"
-        />
       </div>
 
       <StructureWorkspace :editor="editor" />
@@ -223,6 +190,11 @@ watch(
   gap: 4px;
 }
 
+.structure-editor__back {
+  justify-self: start;
+  font-size: var(--fonts-label);
+}
+
 .structure-editor__subtitle {
   color: var(--colors-muted);
 }
@@ -244,7 +216,7 @@ watch(
 
 .structure-editor__details {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-medium);
 }
 

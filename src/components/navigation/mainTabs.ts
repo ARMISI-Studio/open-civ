@@ -6,9 +6,9 @@ export interface MainTab {
 }
 
 export const MAIN_TABS: MainTab[] = [
-  { label: 'Structure Editor', to: '/structures', matches: ['/structures'] },
-  { label: 'Question Builder', to: '/questions/create', matches: ['/questions/create'] },
-  { label: 'Answer Questions', to: '/questions/answer', matches: ['/questions/answer'] },
+  { label: 'Structures', to: '/structures', matches: ['/structures'] },
+  { label: 'Questions', to: '/questions', matches: ['/questions'] },
+  { label: 'Answers', to: '/answers', matches: ['/answers'] },
 ]
 
 export function findActiveTab(path: string): MainTab | undefined {

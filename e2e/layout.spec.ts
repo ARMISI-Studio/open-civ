@@ -27,7 +27,7 @@ test('desktop editor: tool strip left, canvas in the middle, properties on the r
 test('desktop builder: form beside the structure preview, main action at the bottom', async ({
   page,
 }) => {
-  await page.goto('/questions/create')
+  await page.goto('/questions/new')
   await chooseOption(page, 'Structure (required)', /^Simply supported beam/)
   const form = (await page.locator('form.question-form').boundingBox())!
   const preview = (await page.getByRole('region', { name: 'Structure preview' }).boundingBox())!

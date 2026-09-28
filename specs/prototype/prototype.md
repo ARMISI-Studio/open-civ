@@ -33,13 +33,13 @@ Out of scope for the frontend project:
 
 ## Main app navigation
 
-The app should have three primary tabs and matching routes.
+The app should have three primary tabs and matching routes. Each tab opens a list of its items, with an action to create a new one. Selecting an item opens it.
 
-| Tab | Route | Purpose |
-| --- | --- | --- |
-| Structure Editor | `/structures` | Create, view, and edit 2D structures. |
-| Question Builder | `/questions/create` | Make questions from an existing structure or a new structure, then share them. |
-| Answer Questions | `/questions/answer` | Answer questions that were created and shared. |
+| Tab | List route | Item routes | Purpose |
+| --- | --- | --- | --- |
+| Structures | `/structures` | `/structures/new`, `/structures/:structureId` | List saved 2D structures; create, view, and edit them in the Structure Editor. |
+| Questions | `/questions` | `/questions/new`, `/questions/:questionId` | List questions with their share status; create or edit them in the Question Builder, then share them. |
+| Answers | `/answers` | `/answers/:shareId` | List questions that are shared and can be answered, open one by share code or link, and answer it. |
 
 Navigation requirements:
 
@@ -48,7 +48,9 @@ Navigation requirements:
 - Routes must be bookmarkable and reloadable.
 - Mobile layout must keep navigation usable without horizontal overflow.
 - Unknown routes should redirect to the default route or show a simple not-found state.
-- Default route should open the Structure Editor unless a shared-question link defines a different entry point.
+- Default route should open the Structures tab unless a shared-question link defines a different entry point.
+- A tab stays active on its list and on its item routes.
+- Each list shows loading, empty, and error states.
 
 ## Area 1: 2D Structure Editor
 
@@ -178,13 +180,7 @@ Let people answer questions that have been created and shared.
 
 ### Shared question routes
 
-The answering area may need additional route forms, such as:
-
-- `/questions/answer`
-- `/questions/answer/:shareId`
-- `/q/:shareId`
-
-The exact public sharing route should be decided with the backend/API contract.
+Shared links open `/answers/:shareId`. The earlier forms `/questions/answer` and `/questions/answer/:shareId` redirect to `/answers` and `/answers/:shareId`. A shorter public route such as `/q/:shareId` can still be decided with the backend/API contract.
 
 ## Backend API expectations
 
@@ -200,7 +196,7 @@ The backend is a separate project. The frontend should expect API support for:
 
 ### Questions
 
-- List created questions, if needed.
+- List created questions, with their share status.
 - Create question.
 - Read question.
 - Update question, if allowed.
@@ -209,6 +205,7 @@ The backend is a separate project. The frontend should expect API support for:
 
 ### Answers
 
+- List questions that are currently shared and can be answered.
 - Read shared question by share ID/code.
 - Submit answer.
 - Return answer status, feedback, explanation, or result according to product rules.
@@ -278,9 +275,10 @@ Exit criterion: the frontend works against the backend API in development.
 
 ## Acceptance criteria
 
-- The app has three main tabs: Structure Editor, Question Builder, and Answer Questions.
+- The app has three main tabs: Structures, Questions, and Answers.
+- Each tab lists its items (saved structures, created questions, shared questions to answer) and can start a new structure or question, or open a shared one by code.
 - Each tab has a matching route.
-- The root route opens the Structure Editor by default.
+- The root route opens the Structures tab by default.
 - The 2D Structure Editor can represent and edit a basic structure.
 - The Question Builder can create a question from an existing or new structure.
 - The Question Builder can request a share action from the backend API.

@@ -186,7 +186,35 @@ export function useQuestionBuilder() {
     }
   }
 
+  // --- Loading a saved question for editing -------------------------------------------------
+
+  const loadStatus = ref<RequestStatus>('idle')
+  const loadError = ref<string | null>(null)
+  const notFound = ref(false)
+
+  async function loadQuestion(id: string): Promise<Question | null> {
+    reset()
+    loadStatus.value = 'loading'
+    notFound.value = false
+    try {
+      const question = await questionsApi.getQuestion(id)
+      applySaved(question)
+      loadStatus.value = 'success'
+      return question
+    } catch (error) {
+      notFound.value = error instanceof ApiError && error.status === 404
+      loadError.value = notFound.value
+        ? 'This question doesn’t exist or was deleted.'
+        : errorMessage(error)
+      loadStatus.value = 'error'
+      return null
+    }
+  }
+
   function reset() {
+    loadStatus.value = 'idle'
+    loadError.value = null
+    notFound.value = false
     draft.value = createEmptyQuestion()
     structureSource.value = 'existing'
     newStructure.load(createEmptyStructure())
@@ -230,6 +258,10 @@ export function useQuestionBuilder() {
     save,
     requestShare,
     reset,
+    loadStatus,
+    loadError,
+    notFound,
+    loadQuestion,
   }
 }
 

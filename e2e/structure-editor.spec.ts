@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { canvas, chooseOption, dragWorld, drawSimpleBeam, element, tool } from './helpers'
 
 test('creates a simple structure, saves it through the API, and reloads it', async ({ page }) => {
-  await page.goto('/structures')
+  await page.goto('/structures/new')
   await drawSimpleBeam(page, 'Test beam')
   await expect(page.getByRole('heading', { name: 'No problems found' })).toBeVisible()
 
@@ -16,6 +16,11 @@ test('creates a simple structure, saves it through the API, and reloads it', asy
   await expect(element(page, 'Pin support at A')).toBeVisible()
   await expect(element(page, 'Roller support at B')).toBeVisible()
   await expect(element(page, 'Load at B, 10 kN')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit structure' })).toBeVisible()
+
+  // It is now in the Structures list.
+  await page.getByRole('link', { name: '← All structures' }).click()
+  await expect(page.getByRole('list', { name: 'Saved structures' }).getByRole('link', { name: /^Test beam/ })).toBeVisible()
 })
 
 test('edits a saved structure: move, change properties, delete, undo, and save', async ({ page }) => {
@@ -68,7 +73,7 @@ test('edits a saved structure: move, change properties, delete, undo, and save',
 })
 
 test('shows validation errors instead of saving an invalid structure', async ({ page }) => {
-  await page.goto('/structures')
+  await page.goto('/structures/new')
   await tool(page, 'Node').click()
   const box = (await canvas(page).boundingBox())!
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
@@ -81,7 +86,7 @@ test('shows validation errors instead of saving an invalid structure', async ({ 
     'true',
   )
   await expect(page.getByText('Add at least one member.')).toBeVisible()
-  await expect(page).toHaveURL(/\/structures$/)
+  await expect(page).toHaveURL(/\/structures\/new$/)
 
   // Fix the problems with the keyboard-friendly controls in the properties panel.
   await page.getByRole('textbox', { name: /Structure name/ }).fill('Frame')
@@ -109,17 +114,23 @@ test('adds a zero load and flags it as invalid on the drawing', async ({ page })
   await expect(page.getByRole('button', { name: 'Load at B has zero force.' })).toBeVisible()
 })
 
-test('opens saved structures from the list and handles missing ones', async ({ page }) => {
+test('lists saved structures, opens one, and handles missing ones', async ({ page }) => {
   await page.goto('/structures')
-  await chooseOption(page, 'Open a saved structure', /^Cantilever/)
+  const list = page.getByRole('list', { name: 'Saved structures' })
+  await expect(list.getByRole('listitem')).toHaveCount(2)
+  await expect(list.getByRole('link', { name: /^Simply supported beam/ })).toContainText(
+    '6 m beam with a 10 kN point load at midspan.',
+  )
+  await list.getByRole('link', { name: /^Cantilever/ }).click()
   await expect(page).toHaveURL(/\/structures\/str_cantilever$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit structure' })).toBeVisible()
   await expect(element(page, 'Fixed support at A')).toBeVisible()
 
   await page.goto('/structures/str_does_not_exist')
   await expect(page.getByRole('alert')).toContainText('This structure doesn’t exist or was deleted.')
-  await page.getByRole('link', { name: 'Start a new structure' }).click()
+  await page.getByRole('link', { name: 'Back to all structures' }).click()
   await expect(page).toHaveURL(/\/structures$/)
-  await expect(page.getByRole('textbox', { name: /Structure name/ })).toHaveValue('')
+  await expect(page.getByRole('heading', { level: 1, name: 'Structures' })).toBeVisible()
 })
 
 test('deletes a saved structure after confirmation', async ({ page }) => {
@@ -128,8 +139,9 @@ test('deletes a saved structure after confirmation', async ({ page }) => {
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Delete structure' }).click()
   await expect(page).toHaveURL(/\/structures$/)
-  await chooseOption(page, 'Open a saved structure', /^Simply supported beam/)
-  await expect(page.getByRole('option', { name: /Cantilever/ })).toHaveCount(0)
+  const list = page.getByRole('list', { name: 'Saved structures' })
+  await expect(list.getByRole('link', { name: /^Simply supported beam/ })).toBeVisible()
+  await expect(list.getByRole('link', { name: /^Cantilever/ })).toHaveCount(0)
 })
 
 test('asks before leaving the editor with unsaved changes', async ({ page }) => {
@@ -138,7 +150,7 @@ test('asks before leaving the editor with unsaved changes', async ({ page }) => 
   await page.getByRole('textbox', { name: /Structure name/ }).fill('Renamed beam')
   const builderTab = page
     .getByRole('navigation', { name: 'Main' })
-    .getByRole('link', { name: 'Question Builder' })
+    .getByRole('link', { name: 'Questions' })
 
   page.once('dialog', (dialog) => {
     expect(dialog.message()).toContain('You have unsaved changes.')
@@ -150,6 +162,6 @@ test('asks before leaving the editor with unsaved changes', async ({ page }) => 
 
   page.once('dialog', (dialog) => dialog.accept())
   await builderTab.click()
-  await expect(page).toHaveURL(/\/questions\/create$/)
-  await expect(page.getByRole('heading', { level: 1, name: 'Question Builder' })).toBeVisible()
+  await expect(page).toHaveURL(/\/questions$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Questions' })).toBeVisible()
 })

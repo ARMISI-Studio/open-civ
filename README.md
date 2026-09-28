@@ -8,9 +8,12 @@ The product spec lives in [specs/prototype/](specs/prototype/): [prototype.md](s
 
 | Route | Screen |
 | --- | --- |
-| `/structures`, `/structures/:structureId` | Structure Editor |
-| `/questions/create` | Question Builder |
-| `/questions/answer`, `/questions/answer/:shareId` | Answer Questions |
+| `/structures` | Structures list |
+| `/structures/new`, `/structures/:structureId` | Structure Editor |
+| `/questions` | Questions list, with share status |
+| `/questions/new`, `/questions/:questionId` | Question Builder |
+| `/answers` | Shared questions to answer, and the share-code form |
+| `/answers/:shareId` | Answer a shared question |
 | `/ui-preview` | Shared UI components and theme import (not in the main tabs) |
 
 ## Mock backend

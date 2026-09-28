@@ -51,7 +51,7 @@ function statusTexts(role: 'status' | 'alert') {
   return Array.from(document.querySelectorAll(`[role="${role}"]`)).map((el) => el.textContent ?? '')
 }
 
-describe('Structure Editor states', () => {
+describe('Structures states', () => {
   it('shows a loading state, then the loaded structure', async () => {
     server.use(
       http.get(`${API_BASE_URL}/structures/:id`, async () => {
@@ -72,10 +72,10 @@ describe('Structure Editor states', () => {
     expect(document.querySelector('svg.structure-canvas')).toBeNull()
   })
 
-  it('shows an empty saved list and a list error with retry', async () => {
+  it('shows an empty structures list and a list error with retry', async () => {
     resetDb({ structures: [], questions: [], shares: [], answers: [] })
     const { wrapper } = await mountAt('/structures')
-    await see('No saved structures yet.')
+    await see('No structures yet. Create one to get started.')
     wrapper.unmount()
 
     server.use(
@@ -96,7 +96,7 @@ describe('Structure Editor states', () => {
     server.events.on('request:start', ({ request }) => {
       if (request.method === 'POST') onPost()
     })
-    const { wrapper } = await mountAt('/structures')
+    const { wrapper } = await mountAt('/structures/new')
     const save = wrapper.findAll('button').find((b) => b.text() === 'Save structure')!
     await save.trigger('click')
     await flushPromises()
@@ -124,17 +124,17 @@ describe('Structure Editor states', () => {
   })
 })
 
-describe('Question Builder states', () => {
+describe('Questions states', () => {
   it('shows an empty state when there are no saved structures', async () => {
     resetDb({ structures: [], questions: [], shares: [], answers: [] })
-    await mountAt('/questions/create')
+    await mountAt('/questions/new')
     await see('No saved structures yet.')
     expect(document.body.textContent).toContain('Choose a structure to preview it here.')
   })
 
   it('shows a structure list error with retry', async () => {
     server.use(http.get(`${API_BASE_URL}/structures`, () => HttpResponse.error(), { once: true }))
-    const { wrapper } = await mountAt('/questions/create')
+    const { wrapper } = await mountAt('/questions/new')
     await see('Could not reach the server.')
     const retry = wrapper.findAll('button').find((b) => b.text() === 'Try again')!
     await retry.trigger('click')
@@ -152,7 +152,7 @@ describe('Question Builder states', () => {
         ),
       ),
     )
-    const { wrapper } = await mountAt('/questions/create')
+    const { wrapper } = await mountAt('/questions/new')
     const inputs = wrapper.findAll('input')
     await inputs
       .find((i) => i.attributes('placeholder') === 'e.g. Find the support reaction')!
@@ -172,9 +172,9 @@ describe('Question Builder states', () => {
   })
 })
 
-describe('Answer Questions states', () => {
+describe('Answers states', () => {
   it('shows loading, then a not-found error for an unknown share code', async () => {
-    await mountAt('/questions/answer/ZZZZ9999')
+    await mountAt('/answers/ZZZZ9999')
     expect(statusTexts('status').some((t) => t.includes('Loading the shared question…'))).toBe(true)
     await see('This share link is invalid or the question is no longer shared.')
     expect(document.body.textContent).toContain('Enter a different code')
@@ -183,13 +183,13 @@ describe('Answer Questions states', () => {
 
   it('offers a retry when loading fails for another reason', async () => {
     server.use(http.get(`${API_BASE_URL}/shared/:id`, () => HttpResponse.error()))
-    await mountAt('/questions/answer/ABCD2345')
+    await mountAt('/answers/ABCD2345')
     await see('Could not load the question. Could not reach the server.')
     expect(document.body.textContent).toContain('Try again')
   })
 
   it('validates the share code field', async () => {
-    const { wrapper, router } = await mountAt('/questions/answer')
+    const { wrapper, router } = await mountAt('/answers')
     await wrapper.get('form').trigger('submit')
     await see('Enter a share code or link.')
     await wrapper.get('input').setValue('bad code!')
@@ -198,6 +198,83 @@ describe('Answer Questions states', () => {
     await wrapper.get('input').setValue('abcd2345')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
-    expect(router.currentRoute.value.fullPath).toBe('/questions/answer/ABCD2345')
+    expect(router.currentRoute.value.fullPath).toBe('/answers/ABCD2345')
+  })
+
+  it('lists shared questions, with empty and error states', async () => {
+    await mountAt('/answers')
+    await see('No questions have been shared yet.')
+    wrapper!.unmount()
+    server.use(http.get(`${API_BASE_URL}/shared`, () => HttpResponse.error(), { once: true }))
+    const { wrapper: w } = await mountAt('/answers')
+    await see('Could not reach the server.')
+    const retry = w.findAll('button').find((b) => b.text() === 'Try again')!
+    await retry.trigger('click')
+    await see('No questions have been shared yet.')
+    expect(document.body.textContent).not.toContain('Could not reach the server.')
+  })
+})
+
+describe('Questions list and editing states', () => {
+  it('shows an empty questions list, then a question after it is created', async () => {
+    const { wrapper } = await mountAt('/questions')
+    await see('No questions yet. Create one from a structure.')
+    wrapper.unmount()
+    const { createQuestion, shareQuestion } = await import('@/api/questions')
+    const { newOptionDraft } = await import('@/domain/questions')
+    const q = await createQuestion({
+      title: 'Reaction at A',
+      prompt: 'Find it',
+      structureId: 'str_simplebeam',
+      answerType: 'multipleChoice',
+      options: [newOptionDraft('0 kN'), newOptionDraft('5 kN', true)],
+      explanation: '',
+    })
+    const share = await shareQuestion(q.id)
+    await mountAt('/questions')
+    await see('Reaction at A')
+    expect(document.body.textContent).toContain(`Shared · ${share.shareId}`)
+    expect(document.body.textContent).toContain('Structure: Simply supported beam')
+    const link = document.querySelector<HTMLAnchorElement>(`a[href="/questions/${q.id}"]`)
+    expect(link).not.toBeNull()
+  })
+
+  it('shows a questions list error with retry', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/questions`, () =>
+        HttpResponse.json(
+          { error: { code: 'down', message: 'Questions are unavailable.' } },
+          { status: 503 },
+        ),
+      ),
+    )
+    await mountAt('/questions')
+    await see('Questions are unavailable.')
+    expect(document.body.textContent).toContain('Try again')
+  })
+
+  it('loads a saved question for editing, and reports a missing one', async () => {
+    const { createQuestion } = await import('@/api/questions')
+    const { newOptionDraft } = await import('@/domain/questions')
+    const q = await createQuestion({
+      title: 'Editable question',
+      prompt: 'Prompt',
+      structureId: 'str_cantilever',
+      answerType: 'multipleChoice',
+      options: [newOptionDraft('A', true), newOptionDraft('B')],
+      explanation: '',
+    })
+    const { wrapper } = await mountAt(`/questions/${q.id}`)
+    await vi.waitFor(() => {
+      const title = wrapper.find('input[maxlength="120"]')
+      expect(title.exists() && (title.element as HTMLInputElement).value).toBe('Editable question')
+    })
+    expect(document.querySelector('h1')?.textContent).toBe('Edit question')
+    wrapper.unmount()
+
+    await mountAt('/questions/q_missing')
+    await see('This question doesn’t exist or was deleted.')
+    expect(statusTexts('alert').join()).toContain('This question doesn’t exist or was deleted.')
+    expect(document.querySelector('form.question-form')).toBeNull()
   })
 })

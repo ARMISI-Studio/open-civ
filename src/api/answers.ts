@@ -1,7 +1,12 @@
-import type { AnswerResult, SharedQuestion } from '@/domain/answers'
+import type { AnswerResult, SharedQuestion, SharedQuestionSummary } from '@/domain/answers'
 import { apiRequest } from './client'
 import { toStructure } from './structures'
-import type { AnswerInputDto, AnswerResultDto, SharedQuestionDto } from './types'
+import type {
+  AnswerInputDto,
+  AnswerResultDto,
+  SharedQuestionDto,
+  SharedQuestionSummaryDto,
+} from './types'
 
 export function toSharedQuestion(dto: SharedQuestionDto): SharedQuestion {
   return {
@@ -22,6 +27,16 @@ function toAnswerResult(dto: AnswerResultDto): AnswerResult {
     explanation: dto.explanation,
     submittedAt: dto.submittedAt,
   }
+}
+
+export async function listSharedQuestions(): Promise<SharedQuestionSummary[]> {
+  return (await apiRequest<SharedQuestionSummaryDto[]>('/shared')).map((q) => ({
+    shareId: q.shareId,
+    title: q.title,
+    prompt: q.prompt,
+    structureName: q.structureName,
+    sharedAt: q.sharedAt,
+  }))
 }
 
 export async function getSharedQuestion(shareId: string): Promise<SharedQuestion> {

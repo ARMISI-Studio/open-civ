@@ -25,9 +25,10 @@ describe('parseShareInput', () => {
   it.each([
     ['ABCD2345', 'ABCD2345'],
     ['  abcd2345 ', 'ABCD2345'],
+    ['http://localhost:5173/answers/K7QM2XPA', 'K7QM2XPA'],
     ['http://localhost:5173/questions/answer/K7QM2XPA', 'K7QM2XPA'],
-    ['https://example.com/questions/answer/K7QM2XPA/', 'K7QM2XPA'],
-    ['/questions/answer/K7QM2XPA', 'K7QM2XPA'],
+    ['https://example.com/answers/K7QM2XPA/', 'K7QM2XPA'],
+    ['/answers/K7QM2XPA', 'K7QM2XPA'],
   ])('reads %s as %s', (input, expected) => {
     expect(parseShareInput(input)).toBe(expected)
   })

@@ -4,38 +4,69 @@ export const DEFAULT_ROUTE = '/structures'
 
 export const routes: RouteRecordRaw[] = [
   { path: '/', redirect: DEFAULT_ROUTE },
+
+  // Structures
   {
     path: '/structures',
     name: 'structures',
+    component: () => import('@/views/StructuresListView.vue'),
+    meta: { title: 'Structures' },
+  },
+  {
+    path: '/structures/new',
+    name: 'structure-new',
     component: () => import('@/views/StructureEditorView.vue'),
-    meta: { title: 'Structure Editor' },
+    meta: { title: 'New structure' },
   },
   {
     path: '/structures/:structureId',
     name: 'structure-edit',
     component: () => import('@/views/StructureEditorView.vue'),
     props: true,
-    meta: { title: 'Structure Editor' },
+    meta: { title: 'Edit structure' },
+  },
+
+  // Questions
+  {
+    path: '/questions',
+    name: 'questions',
+    component: () => import('@/views/QuestionsListView.vue'),
+    meta: { title: 'Questions' },
   },
   {
-    path: '/questions/create',
-    name: 'question-create',
+    path: '/questions/new',
+    name: 'question-new',
     component: () => import('@/views/QuestionBuilderView.vue'),
-    meta: { title: 'Question Builder' },
+    meta: { title: 'New question' },
   },
   {
-    path: '/questions/answer',
-    name: 'question-answer',
-    component: () => import('@/views/AnswerQuestionsView.vue'),
-    meta: { title: 'Answer Questions' },
+    path: '/questions/:questionId',
+    name: 'question-edit',
+    component: () => import('@/views/QuestionBuilderView.vue'),
+    props: true,
+    meta: { title: 'Edit question' },
+  },
+
+  // Answers
+  {
+    path: '/answers',
+    name: 'answers',
+    component: () => import('@/views/AnswersListView.vue'),
+    meta: { title: 'Answers' },
   },
   {
-    path: '/questions/answer/:shareId',
-    name: 'question-answer-shared',
+    path: '/answers/:shareId',
+    name: 'answer',
     component: () => import('@/views/AnswerQuestionsView.vue'),
     props: true,
-    meta: { title: 'Answer Questions' },
+    meta: { title: 'Answer a question' },
   },
+
+  // Earlier paths, kept so bookmarks and old share links still work.
+  { path: '/questions/create', redirect: '/questions/new' },
+  { path: '/questions/answer', redirect: '/answers' },
+  { path: '/questions/answer/:shareId', redirect: (to) => `/answers/${to.params.shareId}` },
+
   {
     // Component preview for the shared UI layer; not linked from the main tabs.
     path: '/ui-preview',

@@ -129,7 +129,7 @@ describe('useQuestionBuilder', () => {
     const share = await pending
     expect(b.shareStatus.value).toBe('success')
     expect(share?.shareId).toMatch(/^[A-Z2-9]{8}$/)
-    expect(share?.url).toBe(`${window.location.origin}/questions/answer/${share!.shareId}`)
+    expect(share?.url).toBe(`${window.location.origin}/answers/${share!.shareId}`)
     // Sharing again returns the same link.
     expect((await b.requestShare())?.shareId).toBe(share!.shareId)
   })

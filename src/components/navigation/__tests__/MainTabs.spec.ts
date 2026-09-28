@@ -17,27 +17,26 @@ function activeLabels(wrapper: Awaited<ReturnType<typeof mountAt>>['wrapper']) {
 }
 
 describe('MainTabs', () => {
-  it('renders the three main tabs as links to their routes', async () => {
+  it('renders the three main tabs as links to their list routes', async () => {
     const { wrapper } = await mountAt('/structures')
     const links = wrapper.findAll('a')
-    expect(links.map((l) => l.text())).toEqual([
-      'Structure Editor',
-      'Question Builder',
-      'Answer Questions',
-    ])
+    expect(links.map((l) => l.text())).toEqual(['Structures', 'Questions', 'Answers'])
     expect(links.map((l) => l.attributes('href'))).toEqual([
       '/structures',
-      '/questions/create',
-      '/questions/answer',
+      '/questions',
+      '/answers',
     ])
   })
 
   it.each([
-    ['/structures', 'Structure Editor'],
-    ['/structures/abc', 'Structure Editor'],
-    ['/questions/create', 'Question Builder'],
-    ['/questions/answer', 'Answer Questions'],
-    ['/questions/answer/SHARE1', 'Answer Questions'],
+    ['/structures', 'Structures'],
+    ['/structures/new', 'Structures'],
+    ['/structures/abc', 'Structures'],
+    ['/questions', 'Questions'],
+    ['/questions/new', 'Questions'],
+    ['/questions/q_1', 'Questions'],
+    ['/answers', 'Answers'],
+    ['/answers/SHARE1', 'Answers'],
   ])('marks exactly one tab active on %s', async (path, label) => {
     const { wrapper } = await mountAt(path)
     expect(activeLabels(wrapper)).toEqual([label])
@@ -46,9 +45,9 @@ describe('MainTabs', () => {
 
   it('updates the active tab after navigation', async () => {
     const { wrapper, router } = await mountAt('/structures')
-    await router.push('/questions/answer')
+    await router.push('/answers')
     await wrapper.vm.$nextTick()
-    expect(activeLabels(wrapper)).toEqual(['Answer Questions'])
+    expect(activeLabels(wrapper)).toEqual(['Answers'])
   })
 
   it('marks no tab active on unknown routes', async () => {

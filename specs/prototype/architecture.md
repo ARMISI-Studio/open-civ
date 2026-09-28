@@ -12,8 +12,11 @@ src/
   layouts/
     AppLayout.vue
   views/
+    StructuresListView.vue
     StructureEditorView.vue
+    QuestionsListView.vue
     QuestionBuilderView.vue
+    AnswersListView.vue
     AnswerQuestionsView.vue
   components/
     ui/
@@ -220,7 +223,7 @@ Unit tests should cover:
 
 End-to-end tests should cover:
 
-- Navigating between the three main tabs.
+- Navigating between the three main tabs and their list pages.
 - Creating or editing a simple structure.
 - Creating a question from a structure.
 - Sharing a question.

@@ -11,6 +11,15 @@ export interface SharedQuestion {
   structure: Structure | null
 }
 
+/** A shared question listed on the Answers tab. */
+export interface SharedQuestionSummary {
+  shareId: string
+  title: string
+  prompt: string
+  structureName?: string
+  sharedAt: string
+}
+
 export interface AnswerResult {
   answerId: string
   correct: boolean

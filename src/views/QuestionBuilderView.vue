@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import UiButton from '@/components/ui/atoms/UiButton.vue'
+import UiStatus from '@/components/ui/atoms/UiStatus.vue'
 import QuestionForm from '@/components/questions/QuestionForm.vue'
 import ShareQuestionPanel from '@/components/questions/ShareQuestionPanel.vue'
 import StructurePreview from '@/components/structures/StructurePreview.vue'
@@ -9,6 +11,9 @@ import { useStructures } from '@/composables/useStructures'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import type { Structure } from '@/domain/structures'
 
+const props = defineProps<{ questionId?: string }>()
+
+const router = useRouter()
 const builder = useQuestionBuilder()
 const structures = useStructures()
 const preview = ref<Structure | null>(null)
@@ -30,7 +35,19 @@ const isTouched = computed(() => {
 })
 useUnsavedChangesGuard(hasUnsavedWork)
 
-onMounted(() => structures.refreshList())
+async function loadRoute(id: string | undefined) {
+  // Already showing it, e.g. right after the first save redirected to its URL.
+  if (id && id === builder.saved.value?.id) return
+  preview.value = null
+  if (id) await builder.loadQuestion(id)
+  else builder.reset()
+}
+
+watch(() => props.questionId, loadRoute)
+onMounted(() => {
+  loadRoute(props.questionId)
+  structures.refreshList()
+})
 
 // Load the chosen saved structure for the preview.
 watch(
@@ -49,32 +66,48 @@ watch(
 const previewStatus = computed(() => structures.loadStatus.value)
 
 async function save() {
+  const wasNew = !builder.saved.value
   const saved = await builder.save()
+  if (!saved) return
   // A structure drawn here is now saved; make it available in the list.
-  if (saved && builder.structureSource.value === 'new') structures.refreshList()
+  if (builder.structureSource.value === 'new') structures.refreshList()
+  if (wasNew) router.replace(`/questions/${saved.id}`)
 }
 
-function startNew() {
-  if (hasUnsavedWork.value && !window.confirm('Discard this question and start a new one?')) return
-  builder.reset()
-  preview.value = null
-}
+const isLoading = computed(() => builder.loadStatus.value === 'loading')
+const loadFailed = computed(() => builder.loadStatus.value === 'error')
 </script>
 
 <template>
   <section class="question-builder">
     <header class="question-builder__header">
       <div class="question-builder__title">
-        <h1>Question Builder</h1>
+        <RouterLink class="question-builder__back" to="/questions">← All questions</RouterLink>
+        <h1>{{ questionId ? 'Edit question' : 'New question' }}</h1>
         <p class="question-builder__subtitle">Turn a structure into a question, then share it.</p>
       </div>
-      <UiButton @click="startNew">
-        <template #icon>＋</template>
-        New question
-      </UiButton>
     </header>
 
+    <UiStatus v-if="isLoading" tone="loading">Loading question…</UiStatus>
+    <div v-else-if="loadFailed" class="question-builder__error">
+      <UiStatus tone="error">
+        {{
+          builder.notFound.value
+            ? builder.loadError.value
+            : `Could not load the question. ${builder.loadError.value}`
+        }}
+      </UiStatus>
+      <UiButton
+        v-if="!builder.notFound.value && questionId"
+        @click="builder.loadQuestion(questionId)"
+      >
+        Try again
+      </UiButton>
+      <RouterLink to="/questions">Back to all questions</RouterLink>
+    </div>
+
     <div
+      v-else
       class="question-builder__layout"
       :class="{ 'question-builder__layout--wide': builder.structureSource.value === 'new' }"
     >
@@ -132,6 +165,17 @@ function startNew() {
 .question-builder__title {
   display: grid;
   gap: 4px;
+}
+
+.question-builder__back {
+  justify-self: start;
+  font-size: var(--fonts-label);
+}
+
+.question-builder__error {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-medium);
 }
 
 .question-builder__subtitle {

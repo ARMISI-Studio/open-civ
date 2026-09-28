@@ -7,7 +7,7 @@ function makeRouter() {
 }
 
 describe('routes', () => {
-  it('redirects the root route to the Structure Editor', async () => {
+  it('redirects the root route to the Structures tab', async () => {
     const router = makeRouter()
     await router.push('/')
     expect(DEFAULT_ROUTE).toBe('/structures')
@@ -17,10 +17,13 @@ describe('routes', () => {
 
   it.each([
     ['/structures', 'structures'],
+    ['/structures/new', 'structure-new'],
     ['/structures/abc', 'structure-edit'],
-    ['/questions/create', 'question-create'],
-    ['/questions/answer', 'question-answer'],
-    ['/questions/answer/SHARE1', 'question-answer-shared'],
+    ['/questions', 'questions'],
+    ['/questions/new', 'question-new'],
+    ['/questions/q_1', 'question-edit'],
+    ['/answers', 'answers'],
+    ['/answers/SHARE1', 'answer'],
   ])('resolves %s directly to %s', async (path, name) => {
     const router = makeRouter()
     await router.push(path)
@@ -29,12 +32,25 @@ describe('routes', () => {
 
   it('passes route params as props for bookmarkable detail routes', () => {
     const router = makeRouter()
-    const structure = router.resolve('/structures/abc')
-    const shared = router.resolve('/questions/answer/SHARE1')
-    expect(structure.params).toEqual({ structureId: 'abc' })
-    expect(shared.params).toEqual({ shareId: 'SHARE1' })
-    expect(structure.matched[0]?.props.default).toBe(true)
-    expect(shared.matched[0]?.props.default).toBe(true)
+    for (const [path, params] of [
+      ['/structures/abc', { structureId: 'abc' }],
+      ['/questions/q_1', { questionId: 'q_1' }],
+      ['/answers/SHARE1', { shareId: 'SHARE1' }],
+    ] as const) {
+      const route = router.resolve(path)
+      expect(route.params).toEqual(params)
+      expect(route.matched[0]?.props.default).toBe(true)
+    }
+  })
+
+  it.each([
+    ['/questions/create', '/questions/new'],
+    ['/questions/answer', '/answers'],
+    ['/questions/answer/SHARE1', '/answers/SHARE1'],
+  ])('redirects the earlier path %s to %s', async (from, to) => {
+    const router = makeRouter()
+    await router.push(from)
+    expect(router.currentRoute.value.fullPath).toBe(to)
   })
 
   it('shows the not-found route for unknown paths', async () => {

@@ -30,7 +30,7 @@ const SOURCES: { value: StructureSource; label: string; description: string }[] 
   {
     value: 'existing',
     label: 'Use a saved structure',
-    description: 'Pick one from the Structure Editor.',
+    description: 'Pick one from Structures.',
   },
   {
     value: 'new',

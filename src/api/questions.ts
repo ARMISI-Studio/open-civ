@@ -1,6 +1,6 @@
-import type { Question, QuestionDraft, QuestionShare } from '@/domain/questions'
+import type { Question, QuestionDraft, QuestionShare, QuestionSummary } from '@/domain/questions'
 import { apiRequest } from './client'
-import type { QuestionDto, QuestionInputDto, QuestionShareDto } from './types'
+import type { QuestionDto, QuestionInputDto, QuestionShareDto, QuestionSummaryDto } from './types'
 
 function toShare(dto: QuestionShareDto): QuestionShare {
   return { shareId: dto.shareId, url: dto.url, createdAt: dto.createdAt }
@@ -32,6 +32,17 @@ export function toQuestionInput(draft: QuestionDraft): QuestionInputDto {
     })),
     explanation: draft.explanation.trim() || undefined,
   }
+}
+
+export async function listQuestions(): Promise<QuestionSummary[]> {
+  return (await apiRequest<QuestionSummaryDto[]>('/questions')).map((q) => ({
+    id: q.id,
+    title: q.title,
+    structureId: q.structureId,
+    structureName: q.structureName,
+    share: q.share ? toShare(q.share) : undefined,
+    updatedAt: q.updatedAt,
+  }))
 }
 
 export async function getQuestion(id: string): Promise<Question> {

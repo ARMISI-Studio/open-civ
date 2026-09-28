@@ -84,7 +84,7 @@ export async function drawSimpleBeam(page: Page, name: string) {
  * the Question Builder, and returns the share link from the API.
  */
 export async function createSharedQuestion(page: Page): Promise<string> {
-  await page.goto('/questions/create')
+  await page.goto('/questions/new')
   await page.getByRole('textbox', { name: /^Title/ }).fill('Find the support reaction')
   await page.getByRole('textbox', { name: /^Prompt/ }).fill('What is the vertical reaction at A?')
   await chooseOption(page, 'Structure (required)', /^Simply supported beam/)
@@ -98,6 +98,6 @@ export async function createSharedQuestion(page: Page): Promise<string> {
   await expect(page.getByRole('status').filter({ hasText: 'Question saved.' })).toBeVisible()
   await page.getByRole('button', { name: 'Create share link' }).click()
   const link = page.getByRole('textbox', { name: 'Share link' })
-  await expect(link).toHaveValue(/\/questions\/answer\/[A-Z2-9]{8}$/)
+  await expect(link).toHaveValue(/\/answers\/[A-Z2-9]{8}$/)
   return link.inputValue()
 }

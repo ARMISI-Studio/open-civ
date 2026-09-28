@@ -10,8 +10,8 @@ Small gaps in [prototype.md](prototype.md), [architecture.md](architecture.md), 
 
 ## Routing
 
-4. **Not-found page, not a redirect.** Unknown routes show a "Page not found" view with a link back to the Structure Editor.
-5. **Detail routes.** `/structures/:structureId` opens a saved structure so it can be bookmarked. `/questions/answer/:shareId` opens a shared question. The `/q/:shareId` short form was not added; the public share route is still to be decided with the backend.
+4. **Not-found page, not a redirect.** Unknown routes show a "Page not found" view with a link back to Structures.
+5. **Detail routes.** Superseded by 36.
 6. **Component preview at `/ui-preview`.** It is registered in all builds so the e2e tests can run against `pnpm preview` on CI, but it is not linked from the main tabs.
 
 ## Shared UI layer
@@ -57,11 +57,11 @@ Small gaps in [prototype.md](prototype.md), [architecture.md](architecture.md), 
 26. **New structure in the builder.** The full structure editor is embedded in the form. On save, the structure is created (or updated) through the structures API first, then the question is saved with its id. The structure then appears in the Structure Editor like any other.
 27. **Save before sharing.** Sharing is disabled until the question is saved, and again while it has unsaved changes, so the link always points to what the author sees. The link, share code, and URL come from the API. Asking to share an already shared question returns the same link. The mock builds links as `<origin>/questions/answer/<shareId>` from an 8-character code.
 28. **Validation timing.** Question and structure errors appear after the first save attempt, next to each field and in a count by the save button. Server field errors (422) are mapped onto the same fields.
-29. **The builder is not a saved route.** After saving, the builder stays on `/questions/create`, and reloading starts a new question. The saved question, structure, and share link still exist through the API. Prototype.md lists no requirement to reopen questions for editing, and there is no question list endpoint.
+29. **The builder is not a saved route.** Superseded by 37: saved questions now open at `/questions/:questionId`.
 
 ## Answer Questions
 
-30. **Share routes.** A shared link opens `/questions/answer/<shareId>`. `/questions/answer` itself shows a form that accepts a share code or a pasted link, ignoring case. Unknown codes get a clear error and a way back.
+30. **Share routes.** Superseded by 36: a shared link opens `/answers/<shareId>`. The share-code form (code or pasted link, any case) is on `/answers`. Unknown codes get a clear error and a way back.
 31. **Immediate, anonymous feedback.** The specs leave both timing and identity open. The mock grades the answer straight away and returns whether it was correct, the correct option, and the author's explanation. Answers are stored without any user identity.
 32. **Duplicate protection.** Submit is disabled until an option is chosen and while the request is in flight. After a result, the options lock and the submit button disappears. Reloading the page allows another attempt, because answers are anonymous and there is no identity to deduplicate on.
 33. **What respondents receive.** Respondents get the question without the correct flags, with the structure embedded (`GET /shared/:shareId`), so the answer page makes one request.
@@ -70,3 +70,17 @@ Small gaps in [prototype.md](prototype.md), [architecture.md](architecture.md), 
 
 34. **Unsaved-changes guard.** The Structure Editor and Question Builder ask for confirmation before navigating away with unsaved work, and the browser shows its standard prompt on reload or tab close. Moving between structures inside the editor uses the editor's own confirmation, so you are only asked once.
 35. **Architecture guard tests.** `src/__tests__/architecture.spec.ts` fails if code outside `src/api/` makes network calls or uses DTO types, or if anything other than the theme uses browser storage. This keeps two acceptance criteria true as the code changes: persistence goes through the API modules, and the API types stay in one place.
+
+## List-based tabs (requested after the first build)
+
+Prototype.md was updated for this change.
+
+36. **Tabs and routes.** The tabs are now Structures, Questions, and Answers. Each opens a list:
+    - `/structures`, `/structures/new`, `/structures/:structureId`
+    - `/questions`, `/questions/new`, `/questions/:questionId`
+    - `/answers`, `/answers/:shareId`
+
+    `/questions/create`, `/questions/answer`, and `/questions/answer/:shareId` redirect to the new paths, so old bookmarks and share links still work. The mock now builds share links as `<origin>/answers/<shareId>`.
+37. **Questions can be reopened.** `GET /questions` lists questions with their structure name and share status. Opening one loads it into the builder, where it can be edited, saved, and shared. After the first save, a new question moves to its own URL.
+38. **The Answers list shows every currently shared question.** It uses `GET /shared`. There are no accounts, so "questions you can answer" means every question that is currently shared. When accounts exist, this endpoint can filter by user. A local history of opened questions was rejected because app data must go through the API. The share-code form stays at the top of the page.
+39. **The editors lost their pickers.** With list pages in place, the Structure Editor no longer has an "Open a saved structure" select or a "New structure" button, and the Question Builder no longer has a "New question" button. Each has a "← All …" link back to its list. Leaving an editor with unsaved changes always asks first.

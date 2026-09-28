@@ -11,7 +11,7 @@ test('opens a shared link and answers the question', async ({ page }) => {
   await expect(page.getByText(`Shared question · ${shareId}`)).toBeVisible()
   await expect(page.getByRole('group', { name: 'Diagram of Simply supported beam' })).toBeVisible()
   await expect(
-    page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Answer Questions' }),
+    page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Answers' }),
   ).toHaveAttribute('aria-current', 'page')
 
   const submit = page.getByRole('button', { name: 'Submit answer' })
@@ -27,7 +27,7 @@ test('opens a shared link and answers the question', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Submit answer' })).toHaveCount(0)
   await expect(page.getByRole('radio', { name: '0 kN' })).toBeDisabled()
   await page.getByRole('link', { name: 'Answer another question' }).click()
-  await expect(page).toHaveURL(/\/questions\/answer$/)
+  await expect(page).toHaveURL(/\/answers$/)
 })
 
 test('shows feedback for a wrong answer', async ({ page }) => {
@@ -44,7 +44,7 @@ test('opens a shared question from a share code or pasted link', async ({ page }
   const url = await createSharedQuestion(page)
   const shareId = url.split('/').pop()!
 
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Answer Questions' }).click()
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Answers' }).click()
   const input = page.getByRole('textbox', { name: 'Share code or link' })
 
   await page.getByRole('button', { name: 'Open question' }).click()
@@ -56,13 +56,13 @@ test('opens a shared question from a share code or pasted link', async ({ page }
 
   await input.fill(shareId.toLowerCase())
   await input.press('Enter')
-  await expect(page).toHaveURL(new RegExp(`/questions/answer/${shareId}$`))
+  await expect(page).toHaveURL(new RegExp(`/answers/${shareId}$`))
   await expect(page.getByRole('heading', { level: 2, name: 'Find the support reaction' })).toBeVisible()
 
-  await page.goto('/questions/answer')
+  await page.goto('/answers')
   await page.getByRole('textbox', { name: 'Share code or link' }).fill(url)
   await page.getByRole('button', { name: 'Open question' }).click()
-  await expect(page).toHaveURL(new RegExp(`/questions/answer/${shareId}$`))
+  await expect(page).toHaveURL(new RegExp(`/answers/${shareId}$`))
 })
 
 test('shared links survive a reload and unknown codes show an error', async ({ page }) => {
@@ -71,11 +71,38 @@ test('shared links survive a reload and unknown codes show an error', async ({ p
   await page.reload()
   await expect(page.getByRole('heading', { level: 2, name: 'Find the support reaction' })).toBeVisible()
 
-  await page.goto('/questions/answer/ZZZZ9999')
+  await page.goto('/answers/ZZZZ9999')
   await expect(page.getByRole('status').filter({ hasText: 'Loading the shared question…' })).toBeVisible()
   await expect(page.getByRole('alert')).toContainText(
     'This share link is invalid or the question is no longer shared.',
   )
   await page.getByRole('link', { name: 'Enter a different code' }).click()
   await expect(page.getByRole('textbox', { name: 'Share code or link' })).toBeVisible()
+})
+
+test('lists shared questions on the Answers tab and opens one', async ({ page }) => {
+  await page.goto('/answers')
+  await expect(page.getByText('No questions have been shared yet.')).toBeVisible()
+
+  const url = await createSharedQuestion(page)
+  const shareId = url.split('/').pop()!
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Answers' }).click()
+  const card = page
+    .getByRole('list', { name: 'Shared questions' })
+    .getByRole('link', { name: /^Find the support reaction/ })
+  await expect(card).toContainText('What is the vertical reaction at A?')
+  await expect(card).toContainText('Simply supported beam')
+  await card.click()
+  await expect(page).toHaveURL(new RegExp(`/answers/${shareId}$`))
+  await expect(page.getByRole('heading', { level: 1, name: 'Answer a question' })).toBeVisible()
+  await page.getByRole('link', { name: '← All shared questions' }).click()
+  await expect(page).toHaveURL(/\/answers$/)
+})
+
+test('old share links still open the question', async ({ page }) => {
+  const url = await createSharedQuestion(page)
+  const shareId = url.split('/').pop()!
+  await page.goto(`/questions/answer/${shareId}`)
+  await expect(page).toHaveURL(new RegExp(`/answers/${shareId}$`))
+  await expect(page.getByRole('heading', { level: 2, name: 'Find the support reaction' })).toBeVisible()
 })

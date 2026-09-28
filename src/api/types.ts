@@ -8,10 +8,12 @@
  *   GET    /structures/:id                  → StructureDto
  *   PUT    /structures/:id     StructureInputDto → StructureDto
  *   DELETE /structures/:id                  → 204
+ *   GET    /questions                       → QuestionSummaryDto[]
  *   POST   /questions          QuestionInputDto  → QuestionDto
  *   GET    /questions/:id                   → QuestionDto
  *   PUT    /questions/:id      QuestionInputDto  → QuestionDto
  *   POST   /questions/:id/share             → QuestionShareDto
+ *   GET    /shared                          → SharedQuestionSummaryDto[]
  *   GET    /shared/:shareId                 → SharedQuestionDto
  *   POST   /shared/:shareId/answers  AnswerInputDto → AnswerResultDto
  *
@@ -105,6 +107,24 @@ export interface QuestionDto {
   share?: QuestionShareDto
   createdAt: string
   updatedAt: string
+}
+
+export interface QuestionSummaryDto {
+  id: string
+  title: string
+  structureId?: string
+  structureName?: string
+  share?: QuestionShareDto
+  updatedAt: string
+}
+
+/** A question that is currently shared and can be answered. */
+export interface SharedQuestionSummaryDto {
+  shareId: string
+  title: string
+  prompt: string
+  structureName?: string
+  sharedAt: string
 }
 
 /** What a respondent receives: no correct flags, the structure embedded. */

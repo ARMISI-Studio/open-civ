@@ -6,7 +6,9 @@ import type {
   QuestionDto,
   QuestionInputDto,
   QuestionShareDto,
+  QuestionSummaryDto,
   SharedQuestionDto,
+  SharedQuestionSummaryDto,
   StructureDto,
   StructureInputDto,
   StructureSummaryDto,
@@ -125,7 +127,7 @@ type StoredQuestion = MockDb['questions'][number]
 
 /** Public link for a share id. The route is decided here, on the "server". */
 function shareUrl(request: Request, shareId: string) {
-  return `${new URL(request.url).origin}/questions/answer/${shareId}`
+  return `${new URL(request.url).origin}/answers/${shareId}`
 }
 
 function toQuestionDto(question: StoredQuestion, request: Request): QuestionDto {
@@ -179,6 +181,22 @@ function storedOptions(body: QuestionInputDto, previous: StoredQuestion['options
 }
 
 const questionHandlers: RequestHandler[] = [
+  http.get(api('/questions'), async ({ request }) => {
+    await delay(LATENCY_MS)
+    const db = getDb()
+    const summaries: QuestionSummaryDto[] = [...db.questions]
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map((q) => ({
+        id: q.id,
+        title: q.title,
+        structureId: q.structureId,
+        structureName: db.structures.find((s) => s.id === q.structureId)?.name,
+        share: toQuestionDto(q, request).share,
+        updatedAt: q.updatedAt,
+      }))
+    return HttpResponse.json(summaries)
+  }),
+
   http.post<never, QuestionInputDto>(api('/questions'), async ({ request }) => {
     await delay(LATENCY_MS)
     const body = await request.json()
@@ -267,6 +285,28 @@ const shareNotFound = () =>
   errorResponse(404, 'not_found', 'This share link is invalid or the question is no longer shared.')
 
 const answerHandlers: RequestHandler[] = [
+  // No accounts yet: every currently shared question is available to answer.
+  http.get(api('/shared'), async () => {
+    await delay(LATENCY_MS)
+    const db = getDb()
+    const summaries: SharedQuestionSummaryDto[] = [...db.shares]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .flatMap((share) => {
+        const question = db.questions.find((q) => q.id === share.questionId)
+        if (!question) return []
+        return [
+          {
+            shareId: share.shareId,
+            title: question.title,
+            prompt: question.prompt,
+            structureName: db.structures.find((s) => s.id === question.structureId)?.name,
+            sharedAt: share.createdAt,
+          },
+        ]
+      })
+    return HttpResponse.json(summaries)
+  }),
+
   http.get<{ shareId: string }>(api('/shared/:shareId'), async ({ params }) => {
     await delay(LATENCY_MS)
     const found = findShared(params.shareId)

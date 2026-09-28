@@ -14,7 +14,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 test('main navigation stays usable on a phone without horizontal overflow', async ({ page }) => {
   await page.goto('/')
   const nav = page.getByRole('navigation', { name: 'Main' })
-  const tabs = ['Structure Editor', 'Question Builder', 'Answer Questions']
+  const tabs = ['Structures', 'Questions', 'Answers']
 
   for (const name of tabs) {
     const link = nav.getByRole('link', { name })

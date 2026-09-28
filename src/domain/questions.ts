@@ -45,6 +45,15 @@ export interface Question {
   share?: QuestionShare
 }
 
+export interface QuestionSummary {
+  id: string
+  title: string
+  structureId?: string
+  structureName?: string
+  share?: QuestionShare
+  updatedAt: string
+}
+
 /** An option while editing. `key` is a local list key; `id` exists once the API has saved it. */
 export interface QuestionOptionDraft {
   key: string
