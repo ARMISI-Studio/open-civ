@@ -29,7 +29,7 @@ Out of scope for the frontend project:
 - Implementing the backend server.
 - Implementing database persistence directly in the frontend.
 - Building authentication unless the backend/API requirements explicitly require it.
-- Creating a full structural solver unless separately specified.
+- Creating a full structural solver. A simple load analysis is planned separately; see [Area 4](#area-4-load-analysis-planned).
 
 ## Main app navigation
 
@@ -181,6 +181,32 @@ Let people answer questions that have been created and shared.
 ### Shared question routes
 
 Shared links open `/answers/:shareId`. The earlier forms `/questions/answer` and `/questions/answer/:shareId` redirect to `/answers` and `/answers/:shareId`. A shorter public route such as `/q/:shareId` can still be decided with the backend/API contract.
+
+## Area 4: Load analysis (planned)
+
+Status: planned, not yet specified in detail and not part of the current build or its acceptance criteria.
+
+### Purpose
+
+Let users see how a structure responds to its loads, in the spirit of tools like SkyCiv but much simpler: a 2D structure with supports and loads goes in, and results such as support reactions come out.
+
+### Engineering logic must be reviewable
+
+- All analysis logic and formulas live together in one dedicated, readable file (or small folder), separate from UI code, so a structural engineer can read and verify them without knowing Vue or the rest of the app.
+- That file states its assumptions in plain language: sign conventions, units, the analysis method, material and section properties, and what it does not handle.
+- Each formula or step is commented with what it computes and, where one exists, a reference (textbook, code clause, or standard method).
+- The file comes with worked test cases whose expected results a structural engineer can check by hand (for example, a simply supported beam with a central point load).
+- UI code only displays the results and never re-implements engineering calculations.
+
+### Open questions
+
+To settle before building:
+
+- Which results to show: support reactions only, member end forces, deflected shape, or axial/shear/moment diagrams.
+- Which load types to support: the current nodal point loads only, or also distributed loads on members and point moments.
+- Material and section properties: fixed defaults, or editable per member.
+- Where the analysis runs: in the frontend, or as a backend API endpoint (the reviewable-file rule applies either way).
+- Whether questions can use analysis results, for example to generate or check the correct answer.
 
 ## Backend API expectations
 
